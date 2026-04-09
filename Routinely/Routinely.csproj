@@ -14,9 +14,14 @@
     <Description>High-performance async/await, zero-allocation, cooperatively scheduled coroutines for .NET</Description>
     <Copyright>©2026</Copyright>
     <PackageProjectUrl>https://github.com/FuriousOrange/Routinely</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
