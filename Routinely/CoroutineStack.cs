@@ -1,0 +1,69 @@
+﻿namespace Routinely;
+
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
+public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
+{
+    internal readonly ExchangeToken<CoroutineStack> StackToken = stackToken;
+    internal int HeadIndex;
+    internal ExchangeToken<CoroutineCore>[] Tokens = new ExchangeToken<CoroutineCore>[8]; 
+    internal int DispatcherIndex;
+    internal Exception? Exception;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Push(ExchangeToken<CoroutineCore> token)
+    {
+        if(HeadIndex >= Tokens.Length)
+        {
+            Array.Resize(ref Tokens, Tokens.Length * 2);
+        }
+
+        Tokens[HeadIndex++] = token;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Bump(ExchangeToken<CoroutineCore> token)
+    {
+        HeadIndex++;
+
+        while (HeadIndex >= Tokens.Length)
+        {
+            Array.Resize(ref Tokens, Tokens.Length * 2);
+        }
+
+        if (HeadIndex != 0)
+        {
+            Tokens.AsSpan(0, HeadIndex).CopyTo(Tokens.AsSpan(1));
+        }
+
+        Tokens[0] = token;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Pop() => Tokens[--HeadIndex] = null!;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ExchangeToken<CoroutineCore> Peek() => Tokens[HeadIndex - 1];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MergeStack(CoroutineStack other)
+    {
+        if (other == null)
+            return;
+
+        var length = other.HeadIndex;
+
+        for (var i = 0; i < length; i++)
+        {
+            Push(other.Tokens[i]);
+            other.Tokens[i] = null!;
+        }
+
+        other.HeadIndex = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static CoroutineStack Get()
+        => Exchange<CoroutineStack>
+            .Reserve()
+            .BindOnNull(static token => new(token));
+}
