@@ -110,7 +110,7 @@ async Coroutine<int> Work()
 
 Routinely is built around fast immediate cancellation. Coroutines that don't access long lived resources can simply be canceled.
 
-### 1. Cancelation of simple coroutines (Fast, but assumes no cleanup required)
+### 1. Cancellation of simple coroutines (Fast, but assumes no cleanup required)
 
 ```csharp
 async Coroutine Work()
@@ -128,7 +128,7 @@ var work = Work();
 work.Cancel();  
 ```
 
-### 2. Cancelation of coroutines that require resource cleanup.
+### 2. Cancellation of coroutines that require resource cleanup.
 
 ```csharp
 async Coroutine Work()
