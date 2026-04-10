@@ -474,27 +474,6 @@ async Coroutine Work()
 var highPriority = Coroutine.CreateContext();
 var lowPriority = Coroutine.CreateContext();
 
-var lowPriorityCounter = 0;
-var isRunning = true;
-
-while(isRunning)
-{
-    Coroutine.SetContext(highPriority);
-
-    // Create a new coroutine in the high priority context
-    Work().Forget();
-
-    Coroutine.ResumeAll();
-
-    // Execute every 5 ticks
-    if(lowPriorityCounter++ % 5 == 0)
-    {
-        Coroutine.SetContext(lowPriority);
-     
-        Coroutine.ResumeAll();
-    }
-}
-
 async Coroutine VariabePriorityWork()
 {
     var count = 0;
