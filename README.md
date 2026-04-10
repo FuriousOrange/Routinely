@@ -178,7 +178,7 @@ async Coroutine Work()
     {
         // Run async cleanup that outlives this coroutine
         // This gets its own execution stack, allowing it to continue even after this coroutine is cancelled
-        await WorkCanceled().Enforce(contract);
+        await WorkCanceled();
     }
 }
 ```
