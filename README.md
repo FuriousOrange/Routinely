@@ -1,9 +1,10 @@
 # Routinely
 
+[![NuGet](https://img.shields.io/nuget/v/Routinely.svg)](https://www.nuget.org/packages/Routinely)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
-[![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/)
-[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
+[![.NET 8.0](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
+[![.NET 9.0](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/)
+[![.NET 10.0](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Coverage](https://img.shields.io/badge/coverage-93%25-green.svg)](Routinely.UnitTests/)
 
 High-performance async/await, zero-allocation, cooperatively scheduled coroutines for .NET
