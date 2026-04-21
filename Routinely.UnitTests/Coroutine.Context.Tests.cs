@@ -143,6 +143,9 @@ public class CoroutineContextTests : CoroutineTestBase
     [TestMethod]
     public void Coroutine_SwitchTo_Maintains_Coroutine_Context()
     {
+        // Critical test: Proves that switching to a coroutine that changes it's context from the currently resumin context
+        // doesn't stay on the old context when a switch to coroutine forces a context change.
+
         // Arrange
         var context1 = Coroutine.CreateContext();
         var context2 = Coroutine.CreateContext();
