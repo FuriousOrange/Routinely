@@ -9,8 +9,8 @@
 
 High-performance async/await, zero-allocation, cooperatively scheduled coroutines for .NET
 
-Routinely is a lightweight coroutine library designed for game engines and other applications. 
-It provides explicit tick-based control flow, achieving high performance with minimal overhead while maintaining zero GC pressure.
+Routinely is a lightweight coroutine library designed for game engines and applications that require high-performance asynchronous operations. 
+It provides explicit single thread tick-based control flow, achieving high performance with minimal overhead while maintaining zero GC pressure.
 
 ---
 
@@ -539,7 +539,7 @@ Routinely is fully compatible with AOT compilation.
 
 ## Roadmap
 
-### v0.1.1-alpha (Current)
+### v0.1.2-alpha (Current)
 - ✅ Core coroutine runtime (async/await)
 - ✅ Zero-allocation execution
 - ✅ SwitchTo for tail call recursion without stack growth
