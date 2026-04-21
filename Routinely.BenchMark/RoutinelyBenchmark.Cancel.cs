@@ -5,7 +5,7 @@ namespace Routinely.BenchMark;
 
 public partial class RoutinelyBenchmark
 {
-    //[Benchmark]
+    [Benchmark]
     public void Cancel()
     {
         static async Coroutine Work()
@@ -22,7 +22,7 @@ public partial class RoutinelyBenchmark
         while(Coroutine.ResumeAll()) ;
     }
 
-    //[Benchmark]
+    [Benchmark]
     public void Cancel_Stack_Depth_5_Async()
     {
         static async Coroutine Work(int depth)
@@ -45,7 +45,7 @@ public partial class RoutinelyBenchmark
         while (Coroutine.ResumeAll()) ;
     }
 
-    //[Benchmark]
+    [Benchmark]
     public void Cancel_Contract()
     {
         static async Coroutine Work()
