@@ -139,4 +139,79 @@ public class CoroutineContextTests : CoroutineTestBase
         mainCo.IsCompleted.Should().BeTrue();
         context1Complete.Should().BeTrue();
     }
+
+    [TestMethod]
+    public void Coroutine_SwitchTo_Maintains_Coroutine_Context()
+    {
+        // Critical test: Proves that switching to a coroutine that changes it's context from the currently resumin context
+        // doesn't stay on the old context when a switch to coroutine forces a context change.
+
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+
+        async Coroutine switchToContext1()
+        {
+            await Coroutine.Context(context1);
+        }
+
+        async Coroutine setContext2()
+        {
+            await Coroutine.Context(context2);
+            await Coroutine.SwitchTo(switchToContext1);
+        }
+
+        async Coroutine main() => await setContext2();
+
+        // Act
+        Coroutine.SetContext(context1);
+        var mainCo = main();
+
+        Coroutine.SetContext(context2);
+        Coroutine.ResumeAll(); // Switch to
+        Coroutine.ResumeAll(); // Coroutine should be in context 1
+        Coroutine.SetContext(context1);
+
+        // Assert
+        context1.StackCount.Should().Be(1);
+        context1.Stacks[0].HeadIndex.Should().NotBe(0);
+        context2.StackCount.Should().Be(0);
+        context2.Stacks[0].Should().BeNull();
+    }
+
+    [TestMethod]
+    public void Coroutine_SwitchTo_With_Context_Maintains_Coroutine_Context()
+    {
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+
+        async Coroutine switchToContext1()
+        {
+            await Coroutine.Context(context1);
+        }
+
+        async Coroutine setContext2()
+        {
+            await Coroutine.Context(context2);
+            await Coroutine.SwitchTo(this, @this => switchToContext1());
+        }
+
+        async Coroutine main() => await setContext2();
+
+        // Act
+        Coroutine.SetContext(context1);
+        var mainCo = main();
+
+        Coroutine.SetContext(context2);
+        Coroutine.ResumeAll(); // Switch to
+        Coroutine.ResumeAll(); // Coroutine should be in context 1
+        Coroutine.SetContext(context1);
+
+        // Assert
+        context1.StackCount.Should().Be(1);
+        context1.Stacks[0].HeadIndex.Should().NotBe(0);
+        context2.StackCount.Should().Be(0);
+        context2.Stacks[0].Should().BeNull();
+    }
 }

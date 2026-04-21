@@ -41,6 +41,7 @@ internal static class StackDispatcher
         }
 
         stack.DispatcherIndex = StackCount;
+        stack.CoroutineContext = CurrentContext!;
         stacks[StackCount++] = stack;
 
         return stack;
@@ -155,8 +156,8 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ReturnStack(CoroutineStack stack)
     {
-        Debug.Assert(stack != null, "ReturnStack called with null stackToken");
         Debug.Assert(stack != null, "ReturnStack called with null stack");
+        Debug.Assert(stack.StackToken != null, "ReturnStack called with null stackToken");
         Debug.Assert(stack.HeadIndex == 0, "ReturnStack called on non-empty stack");
 
         DetachStack(stack);
@@ -173,6 +174,7 @@ internal static class StackDispatcher
         stacks[stack.DispatcherIndex] = stacks[moveIndex];
         stacks[moveIndex] = null!;
         stack.Exception = null;
+        stack.CoroutineContext = null!;
         StackCount--;
     }
 

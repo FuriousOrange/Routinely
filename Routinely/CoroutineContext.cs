@@ -55,6 +55,7 @@ public sealed class CoroutineContext
         }
 
         stack.DispatcherIndex = StackCount;
+        stack.CoroutineContext = this;
 
         Stacks[StackCount++] = stack;
     }
