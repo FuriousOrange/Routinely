@@ -49,7 +49,7 @@ public sealed class CoroutineContext
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void MigrateStack(CoroutineStack stack)
     {
-        if (Stacks.Length == StackCount)
+        while (StackCount >= Stacks.Length)
         {
             Stacks.Expand();
         }
