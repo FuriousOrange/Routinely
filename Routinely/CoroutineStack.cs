@@ -11,9 +11,9 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
     internal CoroutineContext CoroutineContext = null!;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Push(ExchangeToken<CoroutineCore> token)
+    internal void Push(ExchangeToken<CoroutineCore> token)
     {
-        if(HeadIndex >= Tokens.Length)
+        while (HeadIndex >= Tokens.Length)
         {
             Array.Resize(ref Tokens, Tokens.Length * 2);
         }
@@ -22,7 +22,7 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Bump(ExchangeToken<CoroutineCore> token)
+    internal void Bump(ExchangeToken<CoroutineCore> token)
     {
         HeadIndex++;
 
@@ -40,13 +40,13 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Pop() => Tokens[--HeadIndex] = null!;
+    internal void Pop() => Tokens[--HeadIndex] = null!;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ExchangeToken<CoroutineCore> Peek() => Tokens[HeadIndex - 1];
+    internal ExchangeToken<CoroutineCore> Peek() => Tokens[HeadIndex - 1];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MergeStack(CoroutineStack other)
+    internal void MergeStack(CoroutineStack other)
     {
         if (other == null)
             return;
@@ -63,7 +63,7 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MigrateStack(CoroutineStack target)
+    internal void MigrateStack(CoroutineStack target)
     {
         MergeStack(target);
 
@@ -77,7 +77,7 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CoroutineStack Get()
+    internal static CoroutineStack Get()
         => Exchange<CoroutineStack>
             .Reserve()
             .BindOnNull(static token => new(token));

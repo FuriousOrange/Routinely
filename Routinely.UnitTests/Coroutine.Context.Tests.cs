@@ -143,7 +143,7 @@ public class CoroutineContextTests : CoroutineTestBase
     [TestMethod]
     public void Coroutine_SwitchTo_Maintains_Coroutine_Context()
     {
-        // Critical test: Proves that switching to a coroutine that changes it's context from the currently resumin context
+        // Critical test: Proves that switching to a coroutine that changes it's context from the currently resuming context
         // doesn't stay on the old context when a switch to coroutine forces a context change.
 
         // Arrange
@@ -213,5 +213,36 @@ public class CoroutineContextTests : CoroutineTestBase
         context1.Stacks[0].HeadIndex.Should().NotBe(0);
         context2.StackCount.Should().Be(0);
         context2.Stacks[0].Should().BeNull();
+    }
+
+    [TestMethod]
+    public void Coroutine_After_Migration_Swapped_From_Original_Context_Executes()
+    {
+        // Critical test: Proves that when a coroutine migrates between contexts
+        // the coroutine that replaces it in the dispatcher is executed instead of skipped
+
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+
+        async Coroutine first()
+        {
+            await Coroutine.Yield();
+            await Coroutine.Context(context2); // Forces yield here
+        }
+
+        async Coroutine  second()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act
+        var firstCo = first();
+        var secondCo = second();
+
+        Coroutine.ResumeAll(); // firstCo switches context, secondCo resumes after yield and completes
+
+        // Assert
+        secondCo.IsCompleted.Should().BeTrue();
     }
 }
