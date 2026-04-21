@@ -89,7 +89,15 @@ internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine,
                 {
                     ISwitchTo.CollapseStack(ref this);
 
-                    StackDispatcher.MergeActive(next.Stack);
+                    if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
+                    {
+                        StackDispatcher.MergeActive(next.Stack);
+                    }
+                    else
+                    {
+                        StackDispatcher.CurrentStack.MigrateStack(next.Stack);
+                    }
+
                     next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
                 }
             }
@@ -154,7 +162,15 @@ internal struct SwitchToStateMachine<TContext>(TContext context, Func<TContext, 
                 {
                     ISwitchTo.CollapseStack(ref this);
 
-                    StackDispatcher.MergeActive(next.Stack);
+                    if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
+                    {
+                        StackDispatcher.MergeActive(next.Stack);
+                    }
+                    else
+                    {
+                        StackDispatcher.CurrentStack.MigrateStack(next.Stack);
+                    }
+
                     next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
                 }
             }

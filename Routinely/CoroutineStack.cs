@@ -8,6 +8,7 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
     internal ExchangeToken<CoroutineCore>[] Tokens = new ExchangeToken<CoroutineCore>[8]; 
     internal int DispatcherIndex;
     internal Exception? Exception;
+    internal CoroutineContext CoroutineContext = null!;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Push(ExchangeToken<CoroutineCore> token)
@@ -59,6 +60,20 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
         }
 
         other.HeadIndex = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MigrateStack(CoroutineStack target)
+    {
+        MergeStack(target);
+
+        var migrate = target.Tokens;
+
+        target.Tokens = Tokens;
+        Tokens = migrate;
+
+        target.HeadIndex = HeadIndex;
+        HeadIndex = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
