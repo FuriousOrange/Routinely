@@ -46,17 +46,13 @@ public class PartitionArray<T>
         var partition = length >> PartitionShift;
         var innerIndex = length & PartitionMask;
 
-        if (partition >= partitions.Length)
+        while (partition >= partitions.Length)
         {
             Array.Resize(ref partitions, partitions.Length + 1);
         }
-        if (partitions[partition] == null)
+        while (partitions[partition] == null)
         {
             partitions[partition] = new T[MaxPartitionSize];
-        }
-        if (innerIndex >= partitions[partition].Length)
-        {
-            Array.Resize(ref partitions[partition], partitions[partition].Length * 2);
         }
 
         SetLength();

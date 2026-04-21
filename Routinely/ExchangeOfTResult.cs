@@ -11,7 +11,7 @@ internal sealed class Exchange<T> : Exchange
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Exchange()
     {
-        if (TypeIdCounter >= Trampolines.Length)
+        while (TypeIdCounter >= Trampolines.Length)
         {
             Array.Resize(ref Trampolines, Trampolines.Length * 2);
         }

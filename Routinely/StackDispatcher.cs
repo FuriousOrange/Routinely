@@ -196,7 +196,7 @@ internal static class StackDispatcher
 
     internal static void SetContext(CoroutineContext context)
     {
-        if(CurrentContext != null)
+        if (CurrentContext != null)
         {
             CurrentContext.Stacks = stacks;
             CurrentContext.StackCount = StackCount;
@@ -248,7 +248,7 @@ internal static class StackDispatcher
         {
             var exception = stack.Exception;
 
-            ReturnStack(stacks[currentIndex]);
+            ReturnStack(stack);
             currentIndex--;
 
             if (exception != null)

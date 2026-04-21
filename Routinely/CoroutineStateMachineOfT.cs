@@ -11,7 +11,7 @@ internal readonly struct CoroutineStateMachine<TStateMachine>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static CoroutineStateMachine()
     {
-        if (CoroutineStateMachine.IdCounter >= CoroutineStateMachine.Trampolines.Length)
+        while (CoroutineStateMachine.IdCounter >= CoroutineStateMachine.Trampolines.Length)
         {
             Array.Resize(ref CoroutineStateMachine.Trampolines, CoroutineStateMachine.Trampolines.Length * 2);
         }

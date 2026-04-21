@@ -47,16 +47,37 @@ public sealed class CoroutineContext
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void AddStack(CoroutineStack stack)
+    internal void MigrateStack(CoroutineStack stack)
     {
         if (Stacks.Length == StackCount)
         {
             Stacks.Expand();
         }
 
+        // We want to request a new stack here and migrate the old stack over
+        // to the stack in this context. This allows the dispatcher to cleanup the old stack.
+        var newStack = CoroutineStack.Get();
+        newStack.CoroutineContext = this;
+
+        stack.MigrateStack(newStack);
+
+        Stacks[StackCount++] = newStack;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal CoroutineStack GetStack()
+    {
+        var stack = CoroutineStack.Get();
+
+        if (StackCount >= Stacks.Length)
+        {
+            Stacks.Expand();
+        }
+
         stack.DispatcherIndex = StackCount;
         stack.CoroutineContext = this;
-
         Stacks[StackCount++] = stack;
+
+        return stack;
     }
 }
