@@ -54,14 +54,17 @@ public sealed class CoroutineContext
             Stacks.Expand();
         }
 
-        // We want to request a new stack here and migrate the old stack over
-        // to the stack in this context. This allows the dispatcher to cleanup the old stack.
-        var newStack = CoroutineStack.Get();
-        newStack.CoroutineContext = this;
 
-        stack.MigrateStack(newStack);
+        //// We want to request a new stack here and migrate the old stack over
+        //// to the stack in this context. This allows the dispatcher to cleanup the old stack.
+        //var newStack = CoroutineStack.Get();
+        //newStack.CoroutineContext = this;
 
-        Stacks[StackCount++] = newStack;
+        //stack.MigrateStack(newStack);
+
+        stack.CoroutineContext = this;
+        stack.DispatcherIndex = StackCount;
+        Stacks[StackCount++] = stack;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -79,5 +82,23 @@ public sealed class CoroutineContext
         Stacks[StackCount++] = stack;
 
         return stack;
+    }
+
+    internal void DetachStack(CoroutineStack stack)
+    {
+        if(stack.DispatcherIndex == -1)
+        {
+            return;
+        }
+
+        var moveIndex = StackCount - 1;
+
+        Stacks[moveIndex].DispatcherIndex = stack.DispatcherIndex;
+        Stacks[stack.DispatcherIndex] = Stacks[moveIndex];
+        Stacks[moveIndex] = null!;
+        stack.DispatcherIndex = -1;
+        stack.Exception = null;
+        stack.CoroutineContext = null!;
+        StackCount--;
     }
 }
