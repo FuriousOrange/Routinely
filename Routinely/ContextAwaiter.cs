@@ -41,7 +41,10 @@ public readonly struct ContextAwaiter(CoroutineContext context) : ICoroutineNoti
             else
             {
                 // Existing coroutine so we migrate the current stack to the required context
-                context.MigrateStack(StackDispatcher.CurrentStack);
+                var stack = StackDispatcher.CurrentStack;
+                StackDispatcher.DetachStack(stack);
+                StackDispatcher.currentIndex--;
+                context.MigrateStack(stack);
             }
         }
     }

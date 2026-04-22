@@ -44,6 +44,30 @@ internal interface ISwitchTo
             currentStack.Pop();
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void PersistContext<TCoroutine>(TCoroutine next)
+        where TCoroutine : struct, ICoroutine
+    {
+        if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
+        {
+            StackDispatcher.MergeActive(next.Stack);
+        }
+        else
+        {
+            var stack = StackDispatcher.CurrentStack;
+            var nextContext = next.Stack.CoroutineContext;
+
+            StackDispatcher.DetachStack(stack);
+            nextContext.MigrateStack(stack);
+            stack.MergeStack(next.Stack);
+
+            nextContext.DetachStack(next.Stack);
+            StackDispatcher.currentIndex--;
+
+            next.Stack.StackToken.Return(false);
+        }
+    }
 }
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,15 +112,7 @@ internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine,
                 else
                 {
                     ISwitchTo.CollapseStack(ref this);
-
-                    if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
-                    {
-                        StackDispatcher.MergeActive(next.Stack);
-                    }
-                    else
-                    {
-                        StackDispatcher.CurrentStack.MigrateStack(next.Stack);
-                    }
+                    ISwitchTo.PersistContext(next);
 
                     next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
                 }
@@ -161,15 +177,7 @@ internal struct SwitchToStateMachine<TContext>(TContext context, Func<TContext, 
                 else
                 {
                     ISwitchTo.CollapseStack(ref this);
-
-                    if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
-                    {
-                        StackDispatcher.MergeActive(next.Stack);
-                    }
-                    else
-                    {
-                        StackDispatcher.CurrentStack.MigrateStack(next.Stack);
-                    }
+                    ISwitchTo.PersistContext(next);
 
                     next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
                 }

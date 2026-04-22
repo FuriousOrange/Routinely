@@ -168,11 +168,17 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void DetachStack(CoroutineStack stack)
     {
+        if(stack.DispatcherIndex == -1)
+        {
+            return;
+        }
+
         var moveIndex = StackCount - 1;
 
         stacks[moveIndex].DispatcherIndex = stack.DispatcherIndex;
         stacks[stack.DispatcherIndex] = stacks[moveIndex];
         stacks[moveIndex] = null!;
+        stack.DispatcherIndex = -1;
         stack.Exception = null;
         stack.CoroutineContext = null!;
         StackCount--;
