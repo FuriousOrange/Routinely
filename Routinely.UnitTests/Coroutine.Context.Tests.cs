@@ -316,4 +316,114 @@ public class CoroutineContextTests : CoroutineTestBase
 
         mainCo.CoreToken.Should().Be(context1.Stacks[0].Tokens[0]); // Confirm token hasn't been lost during migration
     }
+
+    [TestMethod]
+    public void Coroutine_Can_Be_Manually_Migrated()
+    {
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+
+        async Coroutine main()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act
+        Coroutine.SetContext(context1);
+        var mainCo = main();
+        mainCo.SetContext(context2);
+
+        // Assert
+        context1.StackCount.Should().Be(0);
+        context2.StackCount.Should().Be(1);
+    }
+
+    [TestMethod]
+    public void Coroutine_Can_Be_Manually_Migrated_To_The_Same_Context()
+    {
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+ 
+        async Coroutine main()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act
+        Coroutine.SetContext(context1);
+        var mainCo = main();
+        var act = () => mainCo.SetContext(context1);
+
+        // Assert
+        act.Should().NotThrow();
+        context1.StackCount.Should().Be(1);
+    }
+
+    [TestMethod]
+    public void Coroutine_Can_Be_Manually_Migrated_Over_Multiple_Contexts()
+    {
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+        var context3 = Coroutine.CreateContext();
+
+        async Coroutine main()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act, Assert
+        Coroutine.SetContext(context1);
+        var mainCo = main();
+
+        mainCo.SetContext(context1);
+        context1.StackCount.Should().Be(1);
+        context2.StackCount.Should().Be(0);
+        context3.StackCount.Should().Be(0);
+
+        mainCo.SetContext(context2);
+        context1.StackCount.Should().Be(0);
+        context2.StackCount.Should().Be(1);
+        context3.StackCount.Should().Be(0);
+
+        mainCo.SetContext(context3);
+        context1.StackCount.Should().Be(0);
+        context2.StackCount.Should().Be(0);
+        context3.StackCount.Should().Be(1);
+    }
+
+    [TestMethod]
+    public void Coroutine_Can_Be_Manually_Migrated_Inside_Swtch_To_When_Captured()
+    {
+        // Critical test: Proves that when a coroutine migrates between contexts during a switch to,
+        // the coroutine can still be manually migrated after the switch to without losing stack integrity
+
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+        Coroutine mainCo = default;
+
+        async Coroutine main()
+        {
+            await Coroutine.SwitchTo(manualSetContext);
+        }
+
+        async Coroutine manualSetContext()
+        {
+            // Capture mainCo here and force it to migrate manually (no await Coroutine.Context) to ensure that the stack integrity is maintained.
+            // This is a valid use case for a switch to closing round the handle and interacting with it
+            mainCo.SetContext(context2);
+        }
+
+        // Act
+        Coroutine.SetContext(context1);
+        mainCo = main();
+
+        Coroutine.ResumeAll(); // Switch to manualSetContext, which will migrate the context of mainCo to context2
+
+        // Assert
+        context1.StackCount.Should().Be(0);
+        context2.StackCount.Should().Be(1);
+    }
 }

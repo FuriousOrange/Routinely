@@ -77,6 +77,36 @@ public static class CoroutineExtensions
             core = ref stack.Tokens[i].Item;
             core.Cancel();
         }
+    }
 
+    /// <summary>
+    /// Set the current coroutine context from a previously created <see cref="CreateContext"/>.
+    /// </summary>
+    /// <param name="context">The context to set.</param>
+    /// <typeparam name="TCoroutine"></typeparam>
+    /// <param name="coroutine">The coroutine to set the context for.</param>
+    /// <param name="context">The context to set.</param>
+    [MethodImplAttribute(MethodImplOptions.AggressiveInlining)]
+    public static void SetContext<TCoroutine>(this TCoroutine coroutine, CoroutineContext context)
+        where TCoroutine : struct, ICoroutine
+    {
+        var stack = coroutine.Stack;
+        var currentContext = stack.CoroutineContext;
+
+        if(currentContext == context)
+        {
+            return;
+        }
+
+        if (currentContext == StackDispatcher.CurrentContext)
+        {
+            StackDispatcher.DetachForMigrate(stack);
+        }
+        else
+        {
+            currentContext.DetachStack(stack);
+        }
+
+        context.MigrateStack(stack);
     }
 }

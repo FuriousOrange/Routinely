@@ -44,6 +44,8 @@ internal static class StackDispatcher
         stack.CoroutineContext = CurrentContext!;
         stacks[StackCount++] = stack;
 
+        CurrentContext!.StackCount = StackCount;
+
         return stack;
     }
 
@@ -150,6 +152,8 @@ internal static class StackDispatcher
             HandleFaults(exceptions);
         }
 
+        CurrentContext!.StackCount = StackCount;
+
         return StackCount != 0;
     }
 
@@ -182,6 +186,15 @@ internal static class StackDispatcher
         stack.Exception = null;
         stack.CoroutineContext = null!;
         StackCount--;
+    }
+
+    [MethodImpl (MethodImplOptions.AggressiveInlining)]
+    internal static void DetachForMigrate(CoroutineStack stack)
+    {
+        Debug.Assert(stack != null, "MigrateStack called with null stack");
+
+        DetachStack(stack);
+        CurrentContext!.StackCount = StackCount;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
