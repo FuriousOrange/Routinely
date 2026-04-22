@@ -539,7 +539,7 @@ Routinely is fully compatible with AOT compilation.
 
 ## Roadmap
 
-### v0.1.2-alpha (Current)
+### v0.1.3-alpha (Current)
 - ✅ Core coroutine runtime (async/await)
 - ✅ Zero-allocation execution
 - ✅ SwitchTo for tail call recursion without stack growth

@@ -243,6 +243,77 @@ public class CoroutineContextTests : CoroutineTestBase
         Coroutine.ResumeAll(); // firstCo switches context, secondCo resumes after yield and completes
 
         // Assert
+        firstCo.IsCompleted.Should().BeFalse();
         secondCo.IsCompleted.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void Coroutine_Can_Be_Cancelled_After_Migrating()
+    {
+        // Critical test: Proves that after a coroutine migrates it's stack integrity is persisted for the coruoutine handle
+
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+
+        async Coroutine main()
+        {
+            await Coroutine.Context(context2);
+        }
+
+        // Act
+        var mainCo = main();
+        mainCo.Cancel();
+
+        // Assert
+        context1.StackCount.Should().Be(0);
+        context2.StackCount.Should().Be(1);
+        mainCo.IsCompleted.Should().BeTrue();
+        mainCo.IsCanceled.Should().BeTrue();
+
+        mainCo.CoreToken.Should().Be(context2.Stacks[0].Tokens[0]); // Confirm token hasn't been lost during migration
+    }
+
+    [TestMethod]
+    public void Coroutine_Can_Be_Cancelled_After_Migrating_Then_Switch_To()
+    {
+        // Critical test: Proves that after a coroutine migrates it's stack, switches to another coroutine
+        // that migrates it's stack again, the original coroutine can still be cancelled
+
+        // Arrange
+        var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
+
+        async Coroutine switchToContext1()
+        {
+            await Coroutine.Context(context1);
+        }
+
+        async Coroutine setContext2()
+        {
+            await Coroutine.Context(context2);
+            await Coroutine.SwitchTo(this, @this => switchToContext1());
+        }
+
+        async Coroutine main() => await setContext2();
+
+        // Act
+        Coroutine.SetContext(context1);
+        var mainCo = main();
+
+        Coroutine.SetContext(context2);
+        Coroutine.ResumeAll(); // Switch to
+        Coroutine.ResumeAll(); // Coroutine should be in context 1
+        Coroutine.SetContext(context1);
+
+        mainCo.Cancel();
+
+        // Assert
+        context1.StackCount.Should().Be(1);
+        context2.StackCount.Should().Be(0);
+        mainCo.IsCompleted.Should().BeTrue();
+        mainCo.IsCanceled.Should().BeTrue();
+
+        mainCo.CoreToken.Should().Be(context1.Stacks[0].Tokens[0]); // Confirm token hasn't been lost during migration
     }
 }

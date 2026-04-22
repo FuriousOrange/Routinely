@@ -55,16 +55,15 @@ internal interface ISwitchTo
         }
         else
         {
-            var stack = StackDispatcher.CurrentStack;
+            var stack = StackDispatcher.DetachActive();
             var nextContext = next.Stack.CoroutineContext;
 
-            StackDispatcher.DetachStack(stack);
+            // Move the active stack over to the new context and merge it with the next stack
             nextContext.MigrateStack(stack);
             stack.MergeStack(next.Stack);
 
+            // Return the next stack to the pool and detach it from the next context
             nextContext.DetachStack(next.Stack);
-            StackDispatcher.currentIndex--;
-
             next.Stack.StackToken.Return(false);
         }
     }

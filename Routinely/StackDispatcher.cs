@@ -168,7 +168,7 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void DetachStack(CoroutineStack stack)
     {
-        if(stack.DispatcherIndex == -1)
+        if (stack.DispatcherIndex == -1)
         {
             return;
         }
@@ -182,6 +182,20 @@ internal static class StackDispatcher
         stack.Exception = null;
         stack.CoroutineContext = null!;
         StackCount--;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static CoroutineStack DetachActive()
+    {
+        Debug.Assert(CurrentStack != null, "DetachActive called with null CurrentStack");
+
+        if (CurrentStack.DispatcherIndex != -1)
+        {
+            currentIndex--;
+            DetachStack(CurrentStack);
+        }
+
+        return CurrentStack;
     }
 
     internal static CoroutineContext CreateContext()
