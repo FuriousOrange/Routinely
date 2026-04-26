@@ -1,8 +1,78 @@
 ﻿namespace Routinely;
 
+internal sealed class ContextMigrationQueue(CoroutineContext coroutineContext)
+{
+    private readonly struct MigrationContext(CoroutineStack stack, CoroutineContext targetContext)
+    {
+        internal readonly CoroutineStack Stack = stack;
+        internal readonly CoroutineContext Target = targetContext;
+    }
+
+    private readonly CoroutineContext CoroutineContext = coroutineContext;
+
+    private readonly PartitionArray<MigrationContext> migrationContexts = new();
+
+    public int Count
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl]
+        private set;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Enqueue(CoroutineStack stack, CoroutineContext targetContext)
+    {
+        while (Count >= migrationContexts.Length)
+        {
+            migrationContexts.Expand();
+        }
+        migrationContexts[Count++] = new MigrationContext(stack, targetContext);
+    }
+
+    internal int Migrate()
+    {
+        if(Count == 0)
+        {
+            return 0;
+        }
+
+        int migrated = 0;
+
+        for (int i = 0; i < Count; i++)
+        {
+            var migrationContext = migrationContexts[i];
+            var stack = migrationContext.Stack;
+
+            if(stack.DispatcherIndex == -1)
+            {
+                migrationContexts[i] = default;
+                continue;
+            }
+
+            CoroutineContext.DetachStack(migrationContext.Stack);
+            migrationContext.Target.MigrateStack(migrationContext.Stack);
+            migrationContexts[i] = default;
+            migrated++;
+
+        }
+        Count = 0;
+
+        return migrated;
+    }
+}
+
 public sealed class CoroutineContext
 {
     internal static uint nextId;
+
+    internal ContextMigrationQueue MigrationQueue
+    {
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl]
+        private set;
+    }
 
     internal CoroutineContext(
         PartitionArray<CoroutineStack> stacks,
@@ -12,6 +82,7 @@ public sealed class CoroutineContext
         Stacks = stacks;
         StackCount = stackCount;
         CurrentIndex = currentIndex;
+        MigrationQueue = new(this);
     }
 
     public uint Id
@@ -45,6 +116,9 @@ public sealed class CoroutineContext
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal set;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal int MigratePending() => MigrationQueue.Migrate();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void MigrateStack(CoroutineStack stack)

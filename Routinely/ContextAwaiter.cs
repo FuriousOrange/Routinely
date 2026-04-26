@@ -36,14 +36,10 @@ public readonly struct ContextAwaiter(CoroutineContext context) : ICoroutineNoti
             if (coroutine.IsCompleted)
             {
                 // New coroutine so we can configure it on new stack in the required context
-                coroutine.Configure(ref stateMachine, context.GetStack());
+                coroutine.Configure(ref stateMachine, StackDispatcher.GetStack());
             }
-            else
-            {
-                // Existing coroutine so we migrate the current stack to the required context
-                var stack = StackDispatcher.DetachActive();
-                context.MigrateStack(stack);
-            }
+
+            StackDispatcher.CurrentContext!.MigrationQueue.Enqueue(coroutine.Stack, context);
         }
     }
 }

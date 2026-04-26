@@ -263,6 +263,8 @@ public class CoroutineContextTests : CoroutineTestBase
 
         // Act
         var mainCo = main();
+        Coroutine.ResumeAll(); // Resume to migrate to context2
+
         mainCo.Cancel();
 
         // Assert

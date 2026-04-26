@@ -140,6 +140,8 @@ internal static class StackDispatcher
     {
         List<Exception>? exceptions = null;
 
+        MigratePending();
+
         for (currentIndex = 0; currentIndex < StackCount; currentIndex++)
         {
             var stack = stacks[currentIndex];
@@ -147,15 +149,18 @@ internal static class StackDispatcher
             ProcessStack(stack, ref exceptions);
         }
 
+        //CurrentContext!.StackCount = StackCount;
+        
         if (exceptions != null)
         {
             HandleFaults(exceptions);
         }
 
-        CurrentContext!.StackCount = StackCount;
-
         return StackCount != 0;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void MigratePending() => StackCount -= CurrentContext!.MigratePending();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ReturnStack(CoroutineStack stack)

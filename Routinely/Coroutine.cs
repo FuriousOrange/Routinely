@@ -186,6 +186,11 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
             throw new NoContextException();
         }
 
+        if(this.Stack.CoroutineContext != StackDispatcher.CurrentContext)
+        {
+            throw new InvalidOperationException("Coroutine context mismatch. Cannot await a coroutine from a different context.");
+        }
+
         ref var core = ref CoreToken.Item;
 
         if (core.HasFlag(CoroutineCore.Awaited))
