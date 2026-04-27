@@ -86,7 +86,7 @@ public static class CoroutineExtensions
     /// <typeparam name="TCoroutine"></typeparam>
     /// <param name="coroutine">The coroutine to set the context for.</param>
     /// <param name="context">The context to set.</param>
-    [MethodImplAttribute(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetContext<TCoroutine>(this TCoroutine coroutine, CoroutineContext context)
         where TCoroutine : struct, ICoroutine
     {
@@ -98,15 +98,17 @@ public static class CoroutineExtensions
             return;
         }
 
-        if (currentContext == StackDispatcher.CurrentContext)
-        {
-            StackDispatcher.DetachForMigrate(stack);
-        }
-        else
-        {
-            currentContext.DetachStack(stack);
-        }
+        coroutine.Stack.CoroutineContext.EnqueueMigration(stack, context);
 
-        context.MigrateStack(stack);
+        //if (currentContext == StackDispatcher.CurrentContext)
+        //{
+        //    StackDispatcher.DetachForMigrate(stack);
+        //}
+        //else
+        //{
+        //    currentContext.DetachStack(stack);
+        //}
+
+        //context.MigrateStack(stack);
     }
 }

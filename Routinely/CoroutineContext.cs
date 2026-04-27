@@ -30,6 +30,7 @@ internal sealed class ContextMigrationQueue(CoroutineContext coroutineContext)
         migrationContexts[Count++] = new MigrationContext(stack, targetContext);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal int Migrate()
     {
         if(Count == 0)
@@ -119,6 +120,10 @@ public sealed class CoroutineContext
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal int MigratePending() => MigrationQueue.Migrate();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void EnqueueMigration(CoroutineStack stack, CoroutineContext targetContext) 
+        => MigrationQueue.Enqueue(stack, targetContext);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void MigrateStack(CoroutineStack stack)

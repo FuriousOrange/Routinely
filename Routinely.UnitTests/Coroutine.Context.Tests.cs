@@ -336,6 +336,8 @@ public class CoroutineContextTests : CoroutineTestBase
         var mainCo = main();
         mainCo.SetContext(context2);
 
+        Coroutine.ResumeAll(); // Resume to ensure migration is processed
+
         // Assert
         context1.StackCount.Should().Be(0);
         context2.StackCount.Should().Be(1);
@@ -380,16 +382,22 @@ public class CoroutineContextTests : CoroutineTestBase
         var mainCo = main();
 
         mainCo.SetContext(context1);
+        Coroutine.ResumeAll(); // Resume to ensure migration is processed
+
         context1.StackCount.Should().Be(1);
         context2.StackCount.Should().Be(0);
         context3.StackCount.Should().Be(0);
 
         mainCo.SetContext(context2);
+        Coroutine.ResumeAll(); // Resume to ensure migration is processed
+
         context1.StackCount.Should().Be(0);
         context2.StackCount.Should().Be(1);
         context3.StackCount.Should().Be(0);
 
         mainCo.SetContext(context3);
+        Coroutine.ResumeAll(); // Resume to ensure migration is processed
+
         context1.StackCount.Should().Be(0);
         context2.StackCount.Should().Be(0);
         context3.StackCount.Should().Be(1);
@@ -423,6 +431,7 @@ public class CoroutineContextTests : CoroutineTestBase
         mainCo = main();
 
         Coroutine.ResumeAll(); // Switch to manualSetContext, which will migrate the context of mainCo to context2
+        Coroutine.ResumeAll(); // Resume to ensure migration is processed
 
         // Assert
         context1.StackCount.Should().Be(0);
