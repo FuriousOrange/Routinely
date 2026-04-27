@@ -5,22 +5,25 @@ namespace Routinely;
 internal readonly struct CoroutineStateMachine<TStateMachine>
     where TStateMachine : IAsyncStateMachine
 {
-    [ThreadStatic]
+    //[ThreadStatic]
     internal static int TypeId;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static CoroutineStateMachine()
     {
-        while (CoroutineStateMachine.IdCounter >= CoroutineStateMachine.Trampolines.Length)
+        lock (CoroutineStateMachine.Lock)
         {
-            Array.Resize(ref CoroutineStateMachine.Trampolines, CoroutineStateMachine.Trampolines.Length * 2);
-        }
+            while (CoroutineStateMachine.IdCounter >= CoroutineStateMachine.Trampolines.Length)
+            {
+                Array.Resize(ref CoroutineStateMachine.Trampolines, CoroutineStateMachine.Trampolines.Length * 2);
+            }
 
-        CoroutineStateMachine.Trampolines[TypeId = CoroutineStateMachine.IdCounter++] = new CoroutineStateMachine.ContinuationTrampolines
-        {
-            MoveNext = &MoveNextTrampoline,
-            Bridge = &BridgeTrampoline,
-        };
+            CoroutineStateMachine.Trampolines[TypeId = CoroutineStateMachine.IdCounter++] = new CoroutineStateMachine.ContinuationTrampolines
+            {
+                MoveNext = &MoveNextTrampoline,
+                Bridge = &BridgeTrampoline,
+            };
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

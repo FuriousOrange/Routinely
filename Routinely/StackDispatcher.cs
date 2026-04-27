@@ -24,10 +24,20 @@ internal static class StackDispatcher
 
     static StackDispatcher()
     {
-        stacks = new();
+        ThreadInit();
+        //stacks = new();
+        //CurrentStack = null!;
+        //Contexts = new();
+        //CurrentContext = new(stacks, StackCount, currentIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static internal void ThreadInit()
+    {
+        stacks ??= new();
         CurrentStack = null!;
-        Contexts = new();
-        CurrentContext = new(stacks, StackCount, currentIndex);
+        Contexts ??= new();
+        CurrentContext ??= new(stacks, StackCount, currentIndex);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

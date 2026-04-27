@@ -3,31 +3,35 @@
 internal sealed class Exchange<T> : Exchange
 {
     [ThreadStatic]
-    static ExchangeToken<T> Head;
+    internal static ExchangeToken<T> Head;
 
-    [ThreadStatic]
+    //[ThreadStatic]
     internal static int TypeId;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Exchange()
     {
-        while (TypeIdCounter >= Trampolines.Length)
+        lock (Lock)
         {
-            Array.Resize(ref Trampolines, Trampolines.Length * 2);
+            while (TypeIdCounter >= Trampolines.Length)
+            {
+                Array.Resize(ref Trampolines, Trampolines.Length * 2);
+            }
+
+            Trampolines[TypeId = TypeIdCounter++] = new ExchangeTrampolines()
+            {
+                ReturnTrampoline = &Exchange<T>.ReturnTrampoline
+            };
+
         }
-
-        Trampolines[TypeId = TypeIdCounter++] = new ExchangeTrampolines()
-        {
-            ReturnTrampoline = &Exchange<T>.ReturnTrampoline
-        };
-
-        Head = new ExchangeToken<T>(TypeId, null!, default!);
+        
+        //Head = new ExchangeToken<T>(TypeId, default!);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ExchangeToken<T> Reserve()
     {
-        Head ??= new ExchangeToken<T>(TypeId, null!, default!);
+        Head ??= new ExchangeToken<T>(TypeId, default!);
 
         var index = Head.Free;
 
@@ -41,7 +45,7 @@ internal sealed class Exchange<T> : Exchange
             return replace!;
         }
 
-        var fresh = new ExchangeToken<T>(TypeId, Head, default!);
+        var fresh = new ExchangeToken<T>(TypeId, default!);
 
         return fresh;
     }
@@ -49,7 +53,7 @@ internal sealed class Exchange<T> : Exchange
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ExchangeToken<T> Put(T item)
     {
-        Head ??= new ExchangeToken<T>(TypeId, null!, default!);
+        Head ??= new ExchangeToken<T>(TypeId, default!);
 
         var index = Head.Free;
 
@@ -62,7 +66,7 @@ internal sealed class Exchange<T> : Exchange
             return replace;
         }
 
-        var fresh = new ExchangeToken<T>(TypeId, Head, item);
+        var fresh = new ExchangeToken<T>(TypeId, item);
 
         return fresh;
     }
@@ -70,6 +74,8 @@ internal sealed class Exchange<T> : Exchange
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ReturnTrampoline(ExchangeToken token)
     {
+        Head ??= new ExchangeToken<T>(TypeId, default!);
+
         ref var typedToken = ref Unsafe.As<ExchangeToken, ExchangeToken<T>>(ref token);
         typedToken.Return();
     }

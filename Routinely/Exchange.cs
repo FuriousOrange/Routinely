@@ -2,6 +2,8 @@
 
 internal class Exchange
 {
+    protected static readonly object Lock = new();
+
     internal readonly struct ExchangeTrampolines
     {
         internal unsafe delegate*<ExchangeToken, void> ReturnTrampoline
@@ -13,10 +15,10 @@ internal class Exchange
         }
     }
 
-    [ThreadStatic]
+    //[ThreadStatic]
     internal static int TypeIdCounter;
 
-    [ThreadStatic]
+    //[ThreadStatic]
     internal static ExchangeTrampolines[] Trampolines;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

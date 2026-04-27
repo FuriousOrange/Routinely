@@ -4,6 +4,8 @@ namespace Routinely;
 
 internal struct CoroutineStateMachine
 {
+    internal static readonly object Lock = new();
+
     internal readonly struct ContinuationTrampolines
     {
         unsafe internal delegate*<ExchangeToken, void> MoveNext 
@@ -23,10 +25,10 @@ internal struct CoroutineStateMachine
         }
     }
 
-    [ThreadStatic]
+    //[ThreadStatic]
     internal static int IdCounter;
 
-    [ThreadStatic]
+    //[ThreadStatic]
     internal static ContinuationTrampolines[] Trampolines;
 
     internal int Id;
