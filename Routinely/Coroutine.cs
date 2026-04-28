@@ -193,7 +193,7 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
 
         if(StackDispatcher.Id != core.DispatcherId)
         {
-            throw new InvalidOperationException("A coroutine cannot be awaited from a different context than the one it was created in.");
+            throw new InvalidOperationException("A coroutine cannot be awaited from a different dispatcher than the one it was created in.");
         }
 
         if (core.HasFlag(CoroutineCore.Awaited))

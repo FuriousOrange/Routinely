@@ -21,6 +21,11 @@ public partial struct Coroutine
     /// </summary>
     public static int Count => StackDispatcher.StackCount;
 
+    static Coroutine()
+    {
+        ThreadInit();
+    }
+
     /// <summary>
     /// Use to handle exceptions thrown by coroutines during resumption without needing to wrap
     /// <see cref="ResumeAll"/> in a try catch. Useful for logging or swallowing exceptions without crashing the application.
@@ -42,6 +47,8 @@ public partial struct Coroutine
     /// </code>
     /// </remarks>
     public static ExceptionHandler? OnUnhandledException { get; set; }
+
+    public static void ThreadInit() => StackDispatcher.ThreadInit();
 
     /// <summary>
     /// Resumes all coroutines until their next yield point.

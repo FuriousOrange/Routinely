@@ -27,6 +27,11 @@ public readonly struct ContextAwaiter(CoroutineContext context) : ICoroutineNoti
         where TAwaiter : ICoroutineNotifyAwaiting
         where TStateMachine : IAsyncStateMachine
     {
+        if(context.DispatcherId != StackDispatcher.Id)
+        {
+            throw new InvalidOperationException("Cannot await context from a different dispatcher");
+        }
+
         if (IsCompleted)
         {
             coroutine.CoreToken.Item.StateMachine.MoveNext();
