@@ -1,9 +1,16 @@
 ﻿using System.Diagnostics;
+using System.Formats.Asn1;
 
 namespace Routinely;
 
 internal static class StackDispatcher
 {
+
+    private static byte currentId;
+
+    [ThreadStatic]
+    internal static byte Id = 0;
+
     [ThreadStatic]
     internal static int StackCount;
 
@@ -22,6 +29,8 @@ internal static class StackDispatcher
     [ThreadStatic]
     internal static int currentIndex;
 
+    private static readonly object threadInitLock = new();
+
     static StackDispatcher()
     {
         ThreadInit();
@@ -34,10 +43,19 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static internal void ThreadInit()
     {
-        stacks ??= new();
-        CurrentStack = null!;
-        Contexts ??= new();
-        CurrentContext ??= new(stacks, StackCount, currentIndex);
+        lock (threadInitLock)
+        {
+            if(Id > 0)
+            {
+                return;
+            }
+
+            Id = ++currentId;
+            stacks ??= new();
+            CurrentStack = null!;
+            Contexts ??= new();
+            CurrentContext ??= new(stacks, StackCount, currentIndex);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -62,8 +80,10 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ExchangeToken<CoroutineCore> GetCoroutineCoreToken()
     {
-        var core = new CoroutineCore();
-        var token = Exchange<CoroutineCore>.Put(core);
+        var token = Exchange<CoroutineCore>.Put(new CoroutineCore
+        {
+            DispatcherId = Id
+        });
         return token;
     }
 
@@ -239,6 +259,13 @@ internal static class StackDispatcher
 
     internal static void SetContext(CoroutineContext context)
     {
+        ArgumentNullException.ThrowIfNull(context, nameof(context));
+
+        if(context.DispatcherId != Id)
+        {
+            throw new InvalidOperationException("Cannot set context from a different dispatcher");
+        }
+
         if (CurrentContext != null)
         {
             CurrentContext.Stacks = stacks;

@@ -1,4 +1,6 @@
-﻿namespace Routinely;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Routinely;
 
 public static class CoroutineExtensions
 {
@@ -86,10 +88,12 @@ public static class CoroutineExtensions
     /// <typeparam name="TCoroutine"></typeparam>
     /// <param name="coroutine">The coroutine to set the context for.</param>
     /// <param name="context">The context to set.</param>
-    [MethodImplAttribute(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetContext<TCoroutine>(this TCoroutine coroutine, CoroutineContext context)
         where TCoroutine : struct, ICoroutine
     {
+        ArgumentNullException.ThrowIfNull(context, nameof(context));
+
         var stack = coroutine.Stack;
         var currentContext = stack.CoroutineContext;
 
@@ -108,5 +112,16 @@ public static class CoroutineExtensions
         }
 
         context.MigrateStack(stack);
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ThrowIfNoContext<TCoroutine>(this TCoroutine coroutine)
+        where TCoroutine : struct, ICoroutine
+    {
+        if (!coroutine.HasContext)
+        {
+            throw new NoContextException(coroutine);
+        }
     }
 }

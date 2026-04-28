@@ -12,15 +12,15 @@ internal interface ISwitchTo
     {
         var currentStack = StackDispatcher.CurrentStack;
 
-        if (currentStack == null)
-        {
-            return;
-        }
+        //if (currentStack == null)
+        //{
+        //    return;
+        //}
 
         ExchangeToken<CoroutineCore> coreToken = switchTo.CoreToken;
 
-        if (coreToken != currentStack.Tokens[0])
-        {
+        //if (coreToken != currentStack.Tokens[0])
+        //{
             ref var rootCore = ref currentStack.Tokens[0].Item;
             ref var core = ref coreToken.Item;
             var stateMachine = core.StateMachine;
@@ -31,7 +31,7 @@ internal interface ISwitchTo
             rootCore.ClearFlag(CoroutineCore.Awaited);
             rootCore.StateMachine = stateMachine;
             switchTo.CoreToken = currentStack.Tokens[0];
-        }
+        //}
 
         while (currentStack.HeadIndex - 1 != 0)
         {

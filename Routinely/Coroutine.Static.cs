@@ -219,6 +219,8 @@ public partial struct Coroutine
         {
             ref var coroutine = ref coroutines[i];
 
+            coroutine.ThrowIfNoContext();
+
             if (coroutine.IsCompleted)
             {
                 if (results != null)
@@ -321,13 +323,17 @@ public partial struct Coroutine
         ArgumentNullException.ThrowIfNull(coroutines, nameof(coroutines));
 
         if (coroutines.Length == 0)
+        {
             throw new ArgumentException("At least one coroutine must be provided.", nameof(coroutines));
+        }
 
         ExchangeToken<WhenAnyContext<TCoroutine, TResult>>? contextToken = null;
 
         for (var i = 0; i < coroutines.Length; i++)
         {
-            ref var coroutine = ref coroutines[i];
+            var coroutine = coroutines[i];
+
+            coroutine.ThrowIfNoContext();
 
             if (coroutine.IsCompleted)
             {

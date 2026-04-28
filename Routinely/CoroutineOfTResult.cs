@@ -200,7 +200,7 @@ public partial struct Coroutine<TResult> : ICoroutine<TResult>, ICoroutineNotify
 
         if (!HasContext)
         {
-            throw new NoContextException();
+            throw new NoContextException(this);
         }
 
         ref var core = ref CoreToken.Item;

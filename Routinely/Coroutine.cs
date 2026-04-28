@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Routinely;
 
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+[SkipLocalsInit]
 [AsyncMethodBuilder(typeof(CoroutineMethodBuilder))]
 public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
 {
@@ -183,10 +186,15 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
 
         if(!HasContext)
         {
-            throw new NoContextException();
+            throw new NoContextException(this);
         }
 
         ref var core = ref CoreToken.Item;
+
+        if(StackDispatcher.Id != core.DispatcherId)
+        {
+            throw new InvalidOperationException("A coroutine cannot be awaited from a different context than the one it was created in.");
+        }
 
         if (core.HasFlag(CoroutineCore.Awaited))
         {

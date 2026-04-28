@@ -82,6 +82,26 @@ public class CoroutineWhenAnyTests : CoroutineTestBase
     }
 
     [TestMethod]
+    public void WhenAny_Awaited_No_Context_Throws()
+    {
+        // Arrange
+        async Coroutine noContext()
+        {
+            await Coroutine.Yield();
+        }
+
+        var noContextCo = noContext();
+        noContextCo.ResumeUntil(c => !c.HasContext);
+
+        // Act
+        var act = () => Coroutine.WhenAny(noContextCo);
+
+        // Assert
+        act.Should().Throw<NoContextException>();
+
+    }
+
+    [TestMethod]
     public void WhenAny_Completes_When_One_Completes_And_Result_Can_Be_Accessed()
     {
         // Arrange

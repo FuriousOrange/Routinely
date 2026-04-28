@@ -25,7 +25,7 @@ internal sealed class Exchange<T> : Exchange
 
         }
         
-        //Head = new ExchangeToken<T>(TypeId, default!);
+        Head = new ExchangeToken<T>(TypeId, default!);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
