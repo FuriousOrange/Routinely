@@ -227,6 +227,7 @@ public partial struct Coroutine
             ref var coroutine = ref coroutines[i];
 
             coroutine.ThrowIfNoContext();
+            //coroutine.ThrowIfNoDispatcherAffinity();
 
             if (coroutine.IsCompleted)
             {

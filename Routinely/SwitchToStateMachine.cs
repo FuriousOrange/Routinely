@@ -49,6 +49,9 @@ internal interface ISwitchTo
     internal static void PersistContext<TCoroutine>(TCoroutine next)
         where TCoroutine : struct, ICoroutine
     {
+        next.ThrowIfNoContext();
+        //next.ThrowIfNoDispatcherAffinity();
+
         if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
         {
             StackDispatcher.MergeActive(next.Stack);
@@ -118,7 +121,11 @@ internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine,
             }
             catch (Exception ex)
             {
-                CoreToken.Item.Fault(ex);
+                ref var core = ref CoreToken.Item;
+                core.SetFlag(CoroutineCore.TailCall);
+                core.Fault(ex);
+
+                throw;
             }
         }
         else

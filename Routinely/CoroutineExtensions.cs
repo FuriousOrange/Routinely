@@ -51,7 +51,7 @@ public static class CoroutineExtensions
     {
         if (!coroutine.HasContext)
         {
-            coroutine.ThrowIfNoDispatcherAffinity();
+            //coroutine.ThrowIfNoDispatcherAffinity();
             return;
         }
 
@@ -62,13 +62,13 @@ public static class CoroutineExtensions
 
         if (coroutine.IsCanceled)
         {
-            coroutine.ThrowIfNoDispatcherAffinity();
+            //coroutine.ThrowIfNoDispatcherAffinity();
             return;
         }
 
         if (coroutine.IsAwaited)
         {
-            coroutine.ThrowIfNoDispatcherAffinity();
+            //coroutine.ThrowIfNoDispatcherAffinity();
             AwaitedCoroutineException.ThrowInvalidCancellation(coroutine);
         }
 
@@ -97,7 +97,8 @@ public static class CoroutineExtensions
     {
         ArgumentNullException.ThrowIfNull(context, nameof(context));
 
-        coroutine.ThrowIfNoDispatcherAffinity();
+        coroutine.ThrowIfNoContext();
+        //coroutine.ThrowIfNoDispatcherAffinity();
 
         var stack = coroutine.Stack;
         var currentContext = stack.CoroutineContext;
@@ -135,7 +136,8 @@ public static class CoroutineExtensions
     public static void ThrowIfNoDispatcherAffinity<TCoroutine>(this TCoroutine coroutine)
         where TCoroutine : struct, ICoroutine
     {
-        if(coroutine.CoreToken.Item.DispatcherId != StackDispatcher.Id)
+        var coreToken = coroutine.CoreToken;
+        if(coreToken != null && coreToken.Item.DispatcherId != StackDispatcher.Id)
         {
             throw new InvalidOperationException("The coroutine does not have affinity with the current dispatcher.");
         }

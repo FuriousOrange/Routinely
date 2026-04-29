@@ -100,7 +100,7 @@ public class CoroutineThreadTests : CoroutineThreadTestBase
         var act = () => StartThread();
 
         // Assert
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<NoContextException>();
     }
 
     [TestMethod]
@@ -123,8 +123,72 @@ public class CoroutineThreadTests : CoroutineThreadTestBase
         var act = () => StartThread(); 
         
         // Assert
-        act.Should().Throw<InvalidOperationException>();
+        mainCo.IsCanceled.Should().BeFalse();
     }
 
-    // TODO : Test SwitchTo a delegate that returns a coroutine from another thread
+    [TestMethod]
+    public void Coroutine_Cannot_Switch_To_Cross_Thread()
+    {
+        // Arrange
+        Coroutine mainCo;
+        async Coroutine crossMain()
+        {
+            await Coroutine.SwitchTo(() => mainCo);
+        }
+
+        async Coroutine main()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act
+        mainCo = main();
+        AddWork(() => crossMain().Forget());
+        var act = () => StartThread();
+
+        // Assert
+        act.Should().Throw<NoContextException>();
+    }
+
+    [TestMethod]
+    public void Coroutine_Cannot_Switch_To_With_Context_Cross_Thread()
+    {
+        // Arrange
+        Coroutine mainCo;
+        async Coroutine crossMain()
+        {
+            await Coroutine.SwitchTo(1, _ => mainCo);
+        }
+
+        async Coroutine main()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act
+        mainCo = main();
+        AddWork(() => crossMain().Forget());
+        var act = () => StartThread();
+
+        // Assert
+        act.Should().Throw<NoContextException>();
+    }
+
+    [TestMethod]
+    public void Coroutine_Cannot_When_All_Cross_Thread()
+    {
+        // Arrange
+        async Coroutine main()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act
+        var mainCo = main();
+        AddWork(() => Coroutine.WhenAll(mainCo).Forget());
+        var act = () => StartThread();
+
+        // Assert
+        act.Should().Throw<NoContextException>();
+    }
 }

@@ -50,8 +50,6 @@ public abstract class CoroutineTestBase
 
 public abstract class CoroutineThreadTestBase : CoroutineTestBase
 {
-    private volatile bool isRunning;
-
     private Thread thread;
 
     private ManualResetEventSlim startEvent;
@@ -65,7 +63,6 @@ public abstract class CoroutineThreadTestBase : CoroutineTestBase
     {
         Coroutine.ThreadInit();
 
-        isRunning = true;
         thread = new Thread(Worker);
         startEvent = new ManualResetEventSlim();
         stopEvent = new ManualResetEventSlim();

@@ -377,12 +377,11 @@ public class CoroutineSwitchToTests : CoroutineTestBase
 
         // Act
         var mainCo = main();
-        Coroutine.ResumeAll();
+        var act = () => mainCo.ResumeUntil(c => c.IsCompleted);
 
         // Assert
-        mainCo.IsCompleted.Should().BeTrue();
+        act.Should().Throw<Exception>().And.Should().Be(expectedException);
         mainCo.IsFaulted.Should().BeTrue();
-        mainCo.Exception.Should().Be(expectedException);
     }
 
     [TestMethod]

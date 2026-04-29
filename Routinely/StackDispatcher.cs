@@ -128,14 +128,15 @@ internal static class StackDispatcher
             ExceptionBox exceptionBox = default;
             core.Result?.CheckedGet(ref exceptionBox);
 
-            if (!core.HasFlag(CoroutineCore.Awaited))
+            if (core.HasFlag(CoroutineCore.TailCall))
+            {
+                stack.Tokens[0].Item.Fault(exceptionBox);
+                stack.Exception = exceptionBox.DispatchInfo?.SourceException;
+            }
+            else if (!core.HasFlag(CoroutineCore.Awaited))
             {
                 var exception = exceptionBox.DispatchInfo?.SourceException;
                 stack.Exception = exception;
-            }
-            else if (core.HasFlag(CoroutineCore.TailCall))
-            {
-                stack.Tokens[0].Item.Fault(exceptionBox);
             }
             else
             {
