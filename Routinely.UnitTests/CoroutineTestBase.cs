@@ -83,7 +83,7 @@ public abstract class CoroutineThreadTestBase : CoroutineTestBase
 
         startEvent.Set();
 
-        stopEvent.WaitHandle.WaitOne();
+        stopEvent.WaitHandle.WaitOne(5000);
 
         var exceptions = exceptionQueue.ToList();
 
