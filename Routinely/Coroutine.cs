@@ -184,24 +184,8 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
         if (isCompleted)
             return this;
 
-        if(!HasContext)
-        {
-            throw new NoContextException(this);
-        }
+        this.EnsureAwaitable();
 
-        ref var core = ref CoreToken.Item;
-
-        if(StackDispatcher.Id != core.DispatcherId)
-        {
-            throw new InvalidOperationException("A coroutine cannot be awaited from a different dispatcher than the one it was created in.");
-        }
-
-        if (core.HasFlag(CoroutineCore.Awaited))
-        {
-            AwaitedCoroutineException.ThrowMultipleAwait(this);
-        }
-
-        core.SetFlag(CoroutineCore.Awaited);
         return this;
     }
 

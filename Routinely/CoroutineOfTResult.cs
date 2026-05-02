@@ -198,19 +198,10 @@ public partial struct Coroutine<TResult> : ICoroutine<TResult>, ICoroutineNotify
         if (isCompleted)
             return this;
 
-        if (!HasContext)
-        {
-            throw new NoContextException(this);
-        }
+        this.ThrowIfNoContext();
 
-        ref var core = ref CoreToken.Item;
+        this.EnsureAwaitable();
 
-        if (core.HasFlag(CoroutineCore.Awaited))
-        {
-            AwaitedCoroutineException.ThrowMultipleAwait(this);
-        }
-
-        core.SetFlag(CoroutineCore.Awaited);
         return this;
     }
 

@@ -120,7 +120,6 @@ public static class CoroutineExtensions
         context.MigrateStack(stack);
     }
 
-    [DoesNotReturn]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrowIfNoContext<TCoroutine>(this TCoroutine coroutine)
         where TCoroutine : struct, ICoroutine
@@ -131,15 +130,19 @@ public static class CoroutineExtensions
         }
     }
 
-    [DoesNotReturn]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrowIfNoDispatcherAffinity<TCoroutine>(this TCoroutine coroutine)
+    internal static void EnsureAwaitable<TCoroutine>(this TCoroutine coroutine)
         where TCoroutine : struct, ICoroutine
     {
-        var coreToken = coroutine.CoreToken;
-        if(coreToken != null && coreToken.Item.DispatcherId != StackDispatcher.Id)
+        coroutine.ThrowIfNoContext();
+
+        ref var core = ref coroutine.CoreToken.Item;
+
+        if (core.HasFlag(CoroutineCore.Awaited))
         {
-            throw new InvalidOperationException("The coroutine does not have affinity with the current dispatcher.");
+            AwaitedCoroutineException.ThrowMultipleAwait(coroutine);
         }
+
+        core.SetFlag(CoroutineCore.Awaited);
     }
 }

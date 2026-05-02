@@ -191,4 +191,22 @@ public class CoroutineThreadTests : CoroutineThreadTestBase
         // Assert
         act.Should().Throw<NoContextException>();
     }
+
+    [TestMethod]
+    public void Coroutine_Cannot_When_Any_Cross_Thread()
+    {
+        // Arrange
+        async Coroutine main()
+        {
+            await Coroutine.Yield();
+        }
+
+        // Act
+        var mainCo = main();
+        AddWork(() => Coroutine.WhenAny(mainCo).Forget());
+        var act = () => StartThread();
+
+        // Assert
+        act.Should().Throw<NoContextException>();
+    }
 }

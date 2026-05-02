@@ -21,16 +21,16 @@ internal interface ISwitchTo
 
         //if (coreToken != currentStack.Tokens[0])
         //{
-            ref var rootCore = ref currentStack.Tokens[0].Item;
-            ref var core = ref coreToken.Item;
-            var stateMachine = core.StateMachine;
+        ref var rootCore = ref currentStack.Tokens[0].Item;
+        ref var core = ref coreToken.Item;
+        var stateMachine = core.StateMachine;
 
-            core.Flags = rootCore.Flags;
-            core.StateMachine = rootCore.StateMachine;
+        core.Flags = rootCore.Flags;
+        core.StateMachine = rootCore.StateMachine;
 
-            rootCore.ClearFlag(CoroutineCore.Awaited);
-            rootCore.StateMachine = stateMachine;
-            switchTo.CoreToken = currentStack.Tokens[0];
+        rootCore.ClearFlag(CoroutineCore.Awaited);
+        rootCore.StateMachine = stateMachine;
+        switchTo.CoreToken = currentStack.Tokens[0];
         //}
 
         while (currentStack.HeadIndex - 1 != 0)
@@ -49,9 +49,6 @@ internal interface ISwitchTo
     internal static void PersistContext<TCoroutine>(TCoroutine next)
         where TCoroutine : struct, ICoroutine
     {
-        next.ThrowIfNoContext();
-        //next.ThrowIfNoDispatcherAffinity();
-
         if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
         {
             StackDispatcher.MergeActive(next.Stack);
@@ -70,13 +67,37 @@ internal interface ISwitchTo
             next.Stack.StackToken.Return(false);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void HandleSwitch<TSwitchTo, TCoroutine>(ref TSwitchTo switchTo, TCoroutine next)
+        where TSwitchTo : ISwitchTo
+        where TCoroutine : struct, ICoroutine
+    {
+        next.ThrowIfNoContext();
+
+        if (next.IsCompleted)
+        {
+            CollapseStack(ref switchTo);
+
+
+            switchTo.CoreToken.Item.SetFlag(CoroutineCore.Completed);
+        }
+        else
+        {
+            CollapseStack(ref switchTo);
+            PersistContext(next);
+
+            next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
+        }
+    }
 }
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine, ISwitchTo
+internal struct SwitchToStateMachine<TCoroutine>(Func<TCoroutine> next) : IAsyncStateMachine, ISwitchTo
+    where TCoroutine : struct, ICoroutine
 {
     private bool hasYielded = false;
-    private readonly Func<Coroutine> next = next;
+    private readonly Func<TCoroutine> next = next;
 
     public ExchangeToken<CoroutineCore> CoreToken
     {
@@ -105,26 +126,11 @@ internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine,
 
                 var next = this.next();
 
-                if (next.IsCompleted)
-                {
-                    ISwitchTo.CollapseStack(ref this);
-
-                    CoreToken.Item.SetFlag(CoroutineCore.Completed);
-                }
-                else
-                {
-                    ISwitchTo.CollapseStack(ref this);
-                    ISwitchTo.PersistContext(next);
-
-                    next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
-                }
+                ISwitchTo.HandleSwitch(ref this, next);
             }
             catch (Exception ex)
             {
-                ref var core = ref CoreToken.Item;
-                core.SetFlag(CoroutineCore.TailCall);
-                core.Fault(ex);
-
+                CoreToken.Item.Fault(ex);
                 throw;
             }
         }
@@ -141,11 +147,12 @@ internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine,
 }
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal struct SwitchToStateMachine<TContext>(TContext context, Func<TContext, Coroutine> next) : IAsyncStateMachine, ISwitchTo
+internal struct SwitchToStateMachine<TContext, TCoroutine>(TContext context, Func<TContext, TCoroutine> next) : IAsyncStateMachine, ISwitchTo
+    where TCoroutine : struct, ICoroutine
 {
     private bool hasYielded = false;
     private readonly TContext context = context;
-    private readonly Func<TContext, Coroutine> next = next;
+    private readonly Func<TContext, TCoroutine> next = next;
 
     public ExchangeToken<CoroutineCore> CoreToken
     {
@@ -174,29 +181,19 @@ internal struct SwitchToStateMachine<TContext>(TContext context, Func<TContext, 
 
                 var next = this.next(context);
 
-                if (next.IsCompleted)
-                {
-                    ISwitchTo.CollapseStack(ref this);
-
-                    CoreToken.Item.SetFlag(CoroutineCore.Completed);
-                }
-                else
-                {
-                    ISwitchTo.CollapseStack(ref this);
-                    ISwitchTo.PersistContext(next);
-
-                    next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
-                }
+                ISwitchTo.HandleSwitch(ref this, next);
             }
             catch (Exception ex)
             {
                 CoreToken.Item.Fault(ex);
+                throw;
             }
         }
         else
         {
             CoreToken.Item.SetFlag(CoroutineCore.Completed);
         }
+
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

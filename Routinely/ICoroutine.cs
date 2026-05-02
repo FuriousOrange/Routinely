@@ -37,12 +37,6 @@ public interface ICoroutine : ICoroutineNotifyAwaiting
 
         return core.HasFlag(flag);
     }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void SetFlag(in ExchangeToken<CoroutineCore> token, byte flag) => token.Item.Flags |= flag;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void UnsetFlag(in ExchangeToken<CoroutineCore> token, byte flag) => token.Item.Flags &= (byte)~flag;
 }
 
 public interface ICoroutine<TResult> : ICoroutine

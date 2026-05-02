@@ -423,7 +423,8 @@ public partial struct Coroutine
     /// </code>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static SwitchToAwaiter SwitchTo(Func<Coroutine> next)
+    public static SwitchToAwaiter<TCoroutine> SwitchTo<TCoroutine>(Func<TCoroutine> next)
+        where TCoroutine: struct, ICoroutine
         => new(next);
 
     /// <summary>
@@ -453,7 +454,8 @@ public partial struct Coroutine
     /// }
     /// </code>
     /// </remarks>
-    public static SwitchToAwaiter<TContext> SwitchTo<TContext>(TContext context, Func<TContext, Coroutine> next) 
+    public static SwitchToAwaiter<TContext, TCoroutine> SwitchTo<TContext, TCoroutine>(TContext context, Func<TContext, TCoroutine> next)
+        where TCoroutine: struct, ICoroutine
         => new(context, next);
 
     /// <summary>
