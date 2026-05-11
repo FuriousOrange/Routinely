@@ -4,17 +4,13 @@ internal interface ISwitchTo<TCoroutine>
     where TCoroutine : struct, ICoroutine
 
 {
-    bool HasYielded { get; set; }
-
     ExchangeToken<CoroutineCore> CoreToken { get; set; }
 
     CoroutineStack Stack { get; }
 
-    TCoroutine Next { get; }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CollapseStack<TSwitchTo>(ref TSwitchTo switchTo)
-        where TSwitchTo : ISwitchTo<TCoroutine>
+        where TSwitchTo : struct, ISwitchTo<TCoroutine>
     {
         var currentStack = StackDispatcher.CurrentStack;
 
@@ -44,56 +40,6 @@ internal interface ISwitchTo<TCoroutine>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void MoveNext<TSwitchTo>(ref TSwitchTo switchTo)
-        where TSwitchTo : ISwitchTo<TCoroutine>
-    {
-        if (!switchTo.HasYielded)
-        {
-            try
-            {
-                switchTo.HasYielded = true;
-                var nextCo = switchTo.Next;
-
-                HandleSwitch(ref switchTo, ref nextCo);
-            }
-            catch (Exception ex)
-            {
-                switchTo.CoreToken.Item.Fault(ex);
-                throw;
-            }
-        }
-        else
-        {
-            switchTo.CoreToken.Item.SetFlag(CoroutineCore.Completed);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void MoveNextWithContext<TSwitchTo, TContext>(ref TSwitchTo switchTo)
-        where TSwitchTo : ISwitchTo<TCoroutine>
-    {
-        if (!switchTo.HasYielded)
-        {
-            try
-            {
-                switchTo.HasYielded = true;
-                var nextCo = switchTo.Next;
-
-                HandleSwitch(ref switchTo, ref nextCo);
-            }
-            catch (Exception ex)
-            {
-                switchTo.CoreToken.Item.Fault(ex);
-                throw;
-            }
-        }
-        else
-        {
-            switchTo.CoreToken.Item.SetFlag(CoroutineCore.Completed);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void PersistContext(ref TCoroutine next)
     {
         if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
@@ -117,7 +63,7 @@ internal interface ISwitchTo<TCoroutine>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void HandleSwitch<TSwitchTo>(ref TSwitchTo switchTo, ref TCoroutine next)
-        where TSwitchTo : ISwitchTo<TCoroutine>
+        where TSwitchTo : struct, ISwitchTo<TCoroutine>
     {
         next.ThrowIfNoContext();
 
@@ -137,26 +83,12 @@ internal interface ISwitchTo<TCoroutine>
     }
 }
 
-
-//internal interface ISwitchTo<TCoroutine> : ISwitchTo
-//    where TCoroutine : struct, ICoroutine
-//{
-
-//}
-
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 internal struct SwitchToStateMachine<TCoroutine>(Func<TCoroutine> next) : IAsyncStateMachine, ISwitchTo<TCoroutine>
     where TCoroutine : struct, ICoroutine
 {
     private readonly Func<TCoroutine> next = next;
-
-    public bool HasYielded
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set;
-    }
+    private bool hasYielded = false;
 
     public ExchangeToken<CoroutineCore> CoreToken
     {
@@ -174,14 +106,29 @@ internal struct SwitchToStateMachine<TCoroutine>(Func<TCoroutine> next) : IAsync
         set;
     } = null!;
 
-    public readonly TCoroutine Next
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => next();
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveNext() => ISwitchTo<TCoroutine>.MoveNext(ref this);
+    public void MoveNext()
+    {
+        if (!hasYielded)
+        {
+            try
+            {
+                hasYielded = true;
+                var nextCo = next();
+
+                ISwitchTo<TCoroutine>.HandleSwitch(ref this, ref nextCo);
+            }
+            catch (Exception ex)
+            {
+                CoreToken.Item.Fault(ex);
+                throw;
+            }
+        }
+        else
+        {
+            CoreToken.Item.SetFlag(CoroutineCore.Completed);
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetStateMachine(IAsyncStateMachine stateMachine)
@@ -193,24 +140,9 @@ internal struct SwitchToStateMachine<TCoroutine>(Func<TCoroutine> next) : IAsync
 internal struct SwitchToStateMachine<TContext, TCoroutine>(TContext context, Func<TContext, TCoroutine> next) : IAsyncStateMachine, ISwitchTo<TCoroutine>
     where TCoroutine : struct, ICoroutine
 {
+    private readonly TContext context = context;
     private readonly Func<TContext, TCoroutine> next = next;
-
-    public bool HasYielded
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set;
-    }
-
-    public TContext Context
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set;
-    } = context;
-
+    private bool hasYielded = false;
 
     public ExchangeToken<CoroutineCore> CoreToken
     {
@@ -228,14 +160,29 @@ internal struct SwitchToStateMachine<TContext, TCoroutine>(TContext context, Fun
         set;
     } = null!;
 
-    public readonly TCoroutine Next
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => next(Context);
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveNext() => ISwitchTo<TCoroutine>.MoveNext(ref this);
+    public void MoveNext()
+    {
+        if (!hasYielded)
+        {
+            try
+            {
+                hasYielded = true;
+                var nextCo = next(context);
+
+                ISwitchTo<TCoroutine>.HandleSwitch(ref this, ref nextCo);
+            }
+            catch (Exception ex)
+            {
+                CoreToken.Item.Fault(ex);
+                throw;
+            }
+        }
+        else
+        {
+            CoreToken.Item.SetFlag(CoroutineCore.Completed);
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void SetStateMachine(IAsyncStateMachine stateMachine)
