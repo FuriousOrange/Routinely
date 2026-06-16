@@ -166,9 +166,11 @@ public class CoroutineContextTests : CoroutineTestBase
         // Act
         Coroutine.SetContext(context1);
         var mainCo = main();
+        Coroutine.ResumeAll(); // Perform context move
 
         Coroutine.SetContext(context2);
         Coroutine.ResumeAll(); // Switch to
+        Coroutine.ResumeAll(); // Perform context move
         Coroutine.ResumeAll(); // Coroutine should be in context 1
         Coroutine.SetContext(context1);
 
@@ -202,9 +204,12 @@ public class CoroutineContextTests : CoroutineTestBase
         // Act
         Coroutine.SetContext(context1);
         var mainCo = main();
+        Coroutine.ResumeAll(); // Perform context move
+
 
         Coroutine.SetContext(context2);
         Coroutine.ResumeAll(); // Switch to
+        Coroutine.ResumeAll(); // Perform context move
         Coroutine.ResumeAll(); // Coroutine should be in context 1
         Coroutine.SetContext(context1);
 
@@ -263,6 +268,7 @@ public class CoroutineContextTests : CoroutineTestBase
 
         // Act
         var mainCo = main();
+        Coroutine.ResumeAll();
         mainCo.Cancel();
 
         // Assert
@@ -333,6 +339,7 @@ public class CoroutineContextTests : CoroutineTestBase
         Coroutine.SetContext(context1);
         var mainCo = main();
         mainCo.SetContext(context2);
+        Coroutine.ResumeAll();
 
         // Assert
         context1.StackCount.Should().Be(0);
@@ -374,20 +381,27 @@ public class CoroutineContextTests : CoroutineTestBase
         }
 
         // Act, Assert
-        Coroutine.SetContext(context1);
         var mainCo = main();
 
         mainCo.SetContext(context1);
+        Coroutine.ResumeAll();
+
         context1.StackCount.Should().Be(1);
         context2.StackCount.Should().Be(0);
         context3.StackCount.Should().Be(0);
 
+        Coroutine.SetContext(context1);
         mainCo.SetContext(context2);
+        Coroutine.ResumeAll();
+
         context1.StackCount.Should().Be(0);
         context2.StackCount.Should().Be(1);
         context3.StackCount.Should().Be(0);
 
+        Coroutine.SetContext(context2);
         mainCo.SetContext(context3);
+        Coroutine.ResumeAll();
+
         context1.StackCount.Should().Be(0);
         context2.StackCount.Should().Be(0);
         context3.StackCount.Should().Be(1);
@@ -421,6 +435,8 @@ public class CoroutineContextTests : CoroutineTestBase
         mainCo = main();
 
         Coroutine.ResumeAll(); // Switch to manualSetContext, which will migrate the context of mainCo to context2
+        Coroutine.ResumeAll(); // Switch to manualSetContext, which will migrate the context of mainCo to context2
+
 
         // Assert
         context1.StackCount.Should().Be(0);

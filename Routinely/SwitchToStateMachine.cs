@@ -40,28 +40,6 @@ internal interface ISwitchTo<TCoroutine>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void PersistContext(ref TCoroutine next)
-    {
-        if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
-        {
-            StackDispatcher.MergeActive(next.Stack);
-        }
-        else
-        {
-            var stack = StackDispatcher.DetachActive();
-            var nextContext = next.Stack.CoroutineContext;
-
-            // Move the active stack over to the new context and merge it with the next stack
-            nextContext.MigrateStack(stack);
-            stack.MergeStack(next.Stack);
-
-            // Return the next stack to the pool and detach it from the next context
-            nextContext.DetachStack(next.Stack);
-            next.Stack.StackToken.Return(false);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void HandleSwitch<TSwitchTo>(ref TSwitchTo switchTo, ref TCoroutine next)
         where TSwitchTo : struct, ISwitchTo<TCoroutine>
     {
@@ -69,14 +47,14 @@ internal interface ISwitchTo<TCoroutine>
 
         if (next.IsCompleted)
         {
-            CollapseStack(ref switchTo);
+            //CollapseStack(ref switchTo);
 
             switchTo.CoreToken.Item.SetFlag(CoroutineCore.Completed);
         }
         else
         {
             CollapseStack(ref switchTo);
-            PersistContext(ref next);
+            StackDispatcher.MergeActive(next.Stack);
 
             next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
         }

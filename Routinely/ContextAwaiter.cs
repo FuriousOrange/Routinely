@@ -27,7 +27,7 @@ public readonly struct ContextAwaiter(CoroutineContext context) : ICoroutineNoti
         where TAwaiter : ICoroutineNotifyAwaiting
         where TStateMachine : IAsyncStateMachine
     {
-        if(context.DispatcherId != StackDispatcher.Id)
+        if (context.DispatcherId != StackDispatcher.Id)
         {
             throw new InvalidOperationException("Cannot await context from a different dispatcher");
         }
@@ -38,17 +38,25 @@ public readonly struct ContextAwaiter(CoroutineContext context) : ICoroutineNoti
         }
         else
         {
+            CoroutineStack stack;
+
             if (coroutine.IsCompleted)
             {
-                // New coroutine so we can configure it on new stack in the required context
-                coroutine.Configure(ref stateMachine, context.GetStack());
+                coroutine.Configure(ref stateMachine, StackDispatcher.GetStack());
+                stack = coroutine.Stack;
             }
             else
             {
-                // Existing coroutine so we migrate the current stack to the required context
-                var stack = StackDispatcher.DetachActive();
-                context.MigrateStack(stack);
+                stack = StackDispatcher.CurrentStack;
             }
+
+            // Push a context state machine onto the stack, it will migrate on the next ResumeAll
+            var coreToken = StackDispatcher.GetCoroutineCoreToken();
+            var contextStateMachine = new ContextStateMachine(context, coreToken);
+            ref var core = ref coreToken.Item;
+            core.SetFlag(CoroutineCore.Awaited);
+            core.StateMachine = CoroutineStateMachine<ContextStateMachine>.CaptureStateMachine(ref contextStateMachine);
+            stack.Push(coreToken);
         }
     }
 }

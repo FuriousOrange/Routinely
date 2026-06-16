@@ -80,12 +80,13 @@ public class CoroutineThreadTests : CoroutineThreadTestBase
     {
         // Arrange
         var context1 = Coroutine.CreateContext();
+        var context2 = Coroutine.CreateContext();
 
         Coroutine.SetContext(context1);
 
         async Coroutine crossMain(Coroutine main)
         {
-            main.SetContext(context1);
+            main.SetContext(context2);
         }
 
         async Coroutine main()

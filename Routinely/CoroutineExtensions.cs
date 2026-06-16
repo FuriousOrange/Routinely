@@ -97,27 +97,21 @@ public static class CoroutineExtensions
     {
         ArgumentNullException.ThrowIfNull(context, nameof(context));
 
-        coroutine.ThrowIfNoContext();
-        //coroutine.ThrowIfNoDispatcherAffinity();
-
-        var stack = coroutine.Stack;
-        var currentContext = stack.CoroutineContext;
-
-        if(currentContext == context)
+        if (coroutine.Stack.CoroutineContext == context)
         {
             return;
         }
 
-        if (currentContext == StackDispatcher.CurrentContext)
-        {
-            StackDispatcher.DetachForMigrate(stack);
-        }
-        else
-        {
-            currentContext.DetachStack(stack);
-        }
+        coroutine.ThrowIfNoContext();
 
-        context.MigrateStack(stack);
+        var stack = coroutine.Stack;
+
+        var coreToken = StackDispatcher.GetCoroutineCoreToken();
+        var contextStateMachine = new ContextStateMachine(context, coreToken);
+        ref var core = ref coreToken.Item;
+        core.SetFlag(CoroutineCore.Awaited);
+        core.StateMachine = CoroutineStateMachine<ContextStateMachine>.CaptureStateMachine(ref contextStateMachine);
+        stack.Push(coreToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
