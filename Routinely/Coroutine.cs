@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Routinely;
 
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+[SkipLocalsInit]
 [AsyncMethodBuilder(typeof(CoroutineMethodBuilder))]
 public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
 {
@@ -181,19 +184,8 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
         if (isCompleted)
             return this;
 
-        if(!HasContext)
-        {
-            throw new NoContextException();
-        }
+        this.EnsureAwaitable();
 
-        ref var core = ref CoreToken.Item;
-
-        if (core.HasFlag(CoroutineCore.Awaited))
-        {
-            AwaitedCoroutineException.ThrowMultipleAwait(this);
-        }
-
-        core.SetFlag(CoroutineCore.Awaited);
         return this;
     }
 

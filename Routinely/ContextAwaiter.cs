@@ -27,23 +27,30 @@ public readonly struct ContextAwaiter(CoroutineContext context) : ICoroutineNoti
         where TAwaiter : ICoroutineNotifyAwaiting
         where TStateMachine : IAsyncStateMachine
     {
+        context.ThrowIfNoDispatcherAffinity();
+
         if (IsCompleted)
         {
-            coroutine.CoreToken.Item.StateMachine.MoveNext();
+            return;
         }
         else
         {
+            CoroutineStack stack;
+
             if (coroutine.IsCompleted)
             {
-                // New coroutine so we can configure it on new stack in the required context
-                coroutine.Configure(ref stateMachine, context.GetStack());
+                coroutine.Configure(ref stateMachine, StackDispatcher.GetStack());
+                stack = coroutine.Stack;
             }
             else
             {
-                // Existing coroutine so we migrate the current stack to the required context
-                var stack = StackDispatcher.DetachActive();
-                context.MigrateStack(stack);
+                stack = StackDispatcher.CurrentStack;
             }
+
+            // Push a context state machine onto the stack, it will migrate on the next ResumeAll
+            var contextStateMachine = new ContextStateMachine(context);
+            contextStateMachine.ConfigureCoreToken(StackDispatcher.GetCoroutineCoreToken());
+            stack.Push(contextStateMachine.CoreToken);
         }
     }
 }

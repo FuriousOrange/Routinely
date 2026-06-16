@@ -316,7 +316,7 @@ public class CoroutineSwitchToTests : CoroutineTestBase
     }
 
     [TestMethod]
-    public void Coroutine_Cancel_Cancels_YieldedTo()
+    public void Coroutine_Cancel_Cancels_Switch_To()
     {
         // Arrange
         static async Coroutine next() => await Coroutine.Yield();
@@ -377,12 +377,11 @@ public class CoroutineSwitchToTests : CoroutineTestBase
 
         // Act
         var mainCo = main();
-        Coroutine.ResumeAll();
+        var act = () => mainCo.ResumeUntil(c => c.IsCompleted);
 
         // Assert
-        mainCo.IsCompleted.Should().BeTrue();
+        act.Should().Throw<Exception>().And.Should().Be(expectedException);
         mainCo.IsFaulted.Should().BeTrue();
-        mainCo.Exception.Should().Be(expectedException);
     }
 
     [TestMethod]
@@ -755,7 +754,7 @@ public class CoroutineSwitchToTests : CoroutineTestBase
     }
 
     [TestMethod]
-    public void Coroutine_Cancel_Cancels_YieldedTo_With_Context()
+    public void Coroutine_Cancel_Cancels_Switch_To_With_Context()
     {
         // Arrange
         static async Coroutine next(int ctx) => await Coroutine.Yield();
@@ -816,12 +815,12 @@ public class CoroutineSwitchToTests : CoroutineTestBase
 
         // Act
         var mainCo = main();
-        Coroutine.ResumeAll();
 
         // Assert
-        mainCo.IsCompleted.Should().BeTrue();
-        mainCo.IsFaulted.Should().BeTrue();
-        mainCo.Exception.Should().Be(expectedException);
+        var act = () => mainCo.ResumeUntil(c => c.IsCompleted);
+
+        // Assert
+        act.Should().Throw<Exception>().And.Should().Be(expectedException);
     }
 
     [TestMethod]

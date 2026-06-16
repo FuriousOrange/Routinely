@@ -114,6 +114,47 @@ public class CoroutineWhenAllTests : CoroutineTestBase
     }
 
     [TestMethod]
+    public void WhenAll_Awaited_No_Context_Throws()
+    {
+        // Arrange
+        async Coroutine noContext()
+        {
+            await Coroutine.Yield();
+        }
+
+        var noContextCo = noContext();
+        noContextCo.ResumeUntil(c => !c.HasContext);
+
+        // Act
+        var act = () => Coroutine.WhenAll(noContextCo);
+
+        // Assert
+        act.Should().Throw<NoContextException>();
+
+    }
+
+    [TestMethod]
+    public void WhenAll_Of_Result_Awaited_No_Context_Throws()
+    {
+        // Arrange
+        async Coroutine<int> noContext()
+        {
+            await Coroutine.Yield();
+            return 1;
+        }
+
+        var noContextCo = noContext();
+        noContextCo.ResumeUntil(c => !c.HasContext);
+
+        // Act
+        var act = () => Coroutine.WhenAll(noContextCo);
+
+        // Assert
+        act.Should().Throw<NoContextException>();
+
+    }
+
+    [TestMethod]
     public void WhenAll_Faulted_Awaited_Throws()
     {
         // Arrange
@@ -128,7 +169,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
         var mainCo = Coroutine.WhenAll(sub());
 
         // Act
-        var act = () => DrainCoroutines(@throw: true);
+        var act = () => { while (Coroutine.ResumeAll()) ; };
 
         // Assert
         act.Should().Throw<AggregateException>()
@@ -150,7 +191,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
         var mainCo = Coroutine.WhenAll(sub());
 
         // Act
-        var act = () => DrainCoroutines(@throw: true);
+        var act = () => { while (Coroutine.ResumeAll()) ; };
 
         // Assert
         act.Should().Throw<AggregateException>()

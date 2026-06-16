@@ -1,5 +1,9 @@
-﻿namespace Routinely;
+﻿using System.Runtime.InteropServices;
 
+namespace Routinely;
+
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+[SkipLocalsInit]
 public struct CoroutineCore
 {
     [ThreadStatic]
@@ -13,10 +17,11 @@ public struct CoroutineCore
         Awaited = 1 << 4,
         TailCall = 1 << 5;
 
+    internal byte Flags;
+    internal uint Id;
+    internal byte DispatcherId;
     internal CoroutineStateMachine StateMachine;
     internal ExchangeToken? Result;
-    internal uint Id;
-    internal byte Flags;
 
     public readonly bool HasContext => Id != 0;
 

@@ -21,6 +21,11 @@ public partial struct Coroutine
     /// </summary>
     public static int Count => StackDispatcher.StackCount;
 
+    static Coroutine()
+    {
+        ThreadInit();
+    }
+
     /// <summary>
     /// Use to handle exceptions thrown by coroutines during resumption without needing to wrap
     /// <see cref="ResumeAll"/> in a try catch. Useful for logging or swallowing exceptions without crashing the application.
@@ -42,6 +47,8 @@ public partial struct Coroutine
     /// </code>
     /// </remarks>
     public static ExceptionHandler? OnUnhandledException { get; set; }
+
+    public static void ThreadInit() => StackDispatcher.ThreadInit();
 
     /// <summary>
     /// Resumes all coroutines until their next yield point.
@@ -219,6 +226,9 @@ public partial struct Coroutine
         {
             ref var coroutine = ref coroutines[i];
 
+            coroutine.ThrowIfNoContext();
+            //coroutine.ThrowIfNoDispatcherAffinity();
+
             if (coroutine.IsCompleted)
             {
                 if (results != null)
@@ -321,13 +331,17 @@ public partial struct Coroutine
         ArgumentNullException.ThrowIfNull(coroutines, nameof(coroutines));
 
         if (coroutines.Length == 0)
+        {
             throw new ArgumentException("At least one coroutine must be provided.", nameof(coroutines));
+        }
 
         ExchangeToken<WhenAnyContext<TCoroutine, TResult>>? contextToken = null;
 
         for (var i = 0; i < coroutines.Length; i++)
         {
-            ref var coroutine = ref coroutines[i];
+            var coroutine = coroutines[i];
+
+            coroutine.ThrowIfNoContext();
 
             if (coroutine.IsCompleted)
             {
@@ -409,7 +423,8 @@ public partial struct Coroutine
     /// </code>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static SwitchToAwaiter SwitchTo(Func<Coroutine> next)
+    public static SwitchToAwaiter<TCoroutine> SwitchTo<TCoroutine>(Func<TCoroutine> next)
+        where TCoroutine: struct, ICoroutine
         => new(next);
 
     /// <summary>
@@ -439,7 +454,9 @@ public partial struct Coroutine
     /// }
     /// </code>
     /// </remarks>
-    public static SwitchToAwaiter<TContext> SwitchTo<TContext>(TContext context, Func<TContext, Coroutine> next) 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SwitchToAwaiter<TContext, TCoroutine> SwitchTo<TContext, TCoroutine>(TContext context, Func<TContext, TCoroutine> next)
+        where TCoroutine: struct, ICoroutine
         => new(context, next);
 
     /// <summary>

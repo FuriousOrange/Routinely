@@ -2,7 +2,10 @@
 
 public sealed class CoroutineContext
 {
+    [ThreadStatic]
     internal static uint nextId;
+
+    internal byte DispatcherId = 0;
 
     internal CoroutineContext(
         PartitionArray<CoroutineStack> stacks,
@@ -12,6 +15,7 @@ public sealed class CoroutineContext
         Stacks = stacks;
         StackCount = stackCount;
         CurrentIndex = currentIndex;
+        DispatcherId = StackDispatcher.Id;
     }
 
     public uint Id

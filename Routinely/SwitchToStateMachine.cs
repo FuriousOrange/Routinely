@@ -1,6 +1,8 @@
 namespace Routinely;
 
-internal interface ISwitchTo
+internal interface ISwitchTo<TCoroutine>
+    where TCoroutine : struct, ICoroutine
+
 {
     ExchangeToken<CoroutineCore> CoreToken { get; set; }
 
@@ -8,30 +10,22 @@ internal interface ISwitchTo
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CollapseStack<TSwitchTo>(ref TSwitchTo switchTo)
-        where TSwitchTo : ISwitchTo
+        where TSwitchTo : struct, ISwitchTo<TCoroutine>
     {
         var currentStack = StackDispatcher.CurrentStack;
 
-        if (currentStack == null)
-        {
-            return;
-        }
-
         ExchangeToken<CoroutineCore> coreToken = switchTo.CoreToken;
 
-        if (coreToken != currentStack.Tokens[0])
-        {
-            ref var rootCore = ref currentStack.Tokens[0].Item;
-            ref var core = ref coreToken.Item;
-            var stateMachine = core.StateMachine;
+        ref var rootCore = ref currentStack.Tokens[0].Item;
+        ref var core = ref coreToken.Item;
+        var stateMachine = core.StateMachine;
 
-            core.Flags = rootCore.Flags;
-            core.StateMachine = rootCore.StateMachine;
+        core.Flags = rootCore.Flags;
+        core.StateMachine = rootCore.StateMachine;
 
-            rootCore.ClearFlag(CoroutineCore.Awaited);
-            rootCore.StateMachine = stateMachine;
-            switchTo.CoreToken = currentStack.Tokens[0];
-        }
+        rootCore.ClearFlag(CoroutineCore.Awaited);
+        rootCore.StateMachine = stateMachine;
+        switchTo.CoreToken = currentStack.Tokens[0];
 
         while (currentStack.HeadIndex - 1 != 0)
         {
@@ -46,34 +40,33 @@ internal interface ISwitchTo
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void PersistContext<TCoroutine>(TCoroutine next)
-        where TCoroutine : struct, ICoroutine
+    internal static void HandleSwitch<TSwitchTo>(ref TSwitchTo switchTo, ref TCoroutine next)
+        where TSwitchTo : struct, ISwitchTo<TCoroutine>
     {
-        if (StackDispatcher.CurrentContext == next.Stack.CoroutineContext)
+        next.ThrowIfNoContext();
+
+        if (next.IsCompleted)
         {
-            StackDispatcher.MergeActive(next.Stack);
+            //CollapseStack(ref switchTo);
+
+            switchTo.CoreToken.Item.SetFlag(CoroutineCore.Completed);
         }
         else
         {
-            var stack = StackDispatcher.DetachActive();
-            var nextContext = next.Stack.CoroutineContext;
+            CollapseStack(ref switchTo);
+            StackDispatcher.MergeActive(next.Stack);
 
-            // Move the active stack over to the new context and merge it with the next stack
-            nextContext.MigrateStack(stack);
-            stack.MergeStack(next.Stack);
-
-            // Return the next stack to the pool and detach it from the next context
-            nextContext.DetachStack(next.Stack);
-            next.Stack.StackToken.Return(false);
+            next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
         }
     }
 }
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine, ISwitchTo
+internal struct SwitchToStateMachine<TCoroutine>(Func<TCoroutine> next) : IAsyncStateMachine, ISwitchTo<TCoroutine>
+    where TCoroutine : struct, ICoroutine
 {
+    private readonly Func<TCoroutine> next = next;
     private bool hasYielded = false;
-    private readonly Func<Coroutine> next = next;
 
     public ExchangeToken<CoroutineCore> CoreToken
     {
@@ -99,26 +92,14 @@ internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine,
             try
             {
                 hasYielded = true;
+                var nextCo = next();
 
-                var next = this.next();
-
-                if (next.IsCompleted)
-                {
-                    ISwitchTo.CollapseStack(ref this);
-
-                    CoreToken.Item.SetFlag(CoroutineCore.Completed);
-                }
-                else
-                {
-                    ISwitchTo.CollapseStack(ref this);
-                    ISwitchTo.PersistContext(next);
-
-                    next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
-                }
+                ISwitchTo<TCoroutine>.HandleSwitch(ref this, ref nextCo);
             }
             catch (Exception ex)
             {
                 CoreToken.Item.Fault(ex);
+                throw;
             }
         }
         else
@@ -134,11 +115,12 @@ internal struct SwitchToStateMachine(Func<Coroutine> next) : IAsyncStateMachine,
 }
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal struct SwitchToStateMachine<TContext>(TContext context, Func<TContext, Coroutine> next) : IAsyncStateMachine, ISwitchTo
+internal struct SwitchToStateMachine<TContext, TCoroutine>(TContext context, Func<TContext, TCoroutine> next) : IAsyncStateMachine, ISwitchTo<TCoroutine>
+    where TCoroutine : struct, ICoroutine
 {
-    private bool hasYielded = false;
     private readonly TContext context = context;
-    private readonly Func<TContext, Coroutine> next = next;
+    private readonly Func<TContext, TCoroutine> next = next;
+    private bool hasYielded = false;
 
     public ExchangeToken<CoroutineCore> CoreToken
     {
@@ -164,26 +146,14 @@ internal struct SwitchToStateMachine<TContext>(TContext context, Func<TContext, 
             try
             {
                 hasYielded = true;
+                var nextCo = next(context);
 
-                var next = this.next(context);
-
-                if (next.IsCompleted)
-                {
-                    ISwitchTo.CollapseStack(ref this);
-
-                    CoreToken.Item.SetFlag(CoroutineCore.Completed);
-                }
-                else
-                {
-                    ISwitchTo.CollapseStack(ref this);
-                    ISwitchTo.PersistContext(next);
-
-                    next.CoreToken.Item.SetFlag(CoroutineCore.Awaited | CoroutineCore.TailCall);
-                }
+                ISwitchTo<TCoroutine>.HandleSwitch(ref this, ref nextCo);
             }
             catch (Exception ex)
             {
                 CoreToken.Item.Fault(ex);
+                throw;
             }
         }
         else

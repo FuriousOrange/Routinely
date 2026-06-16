@@ -1,4 +1,6 @@
-﻿namespace Routinely;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Routinely;
 
 public static class CoroutineExtensions
 {
@@ -49,6 +51,7 @@ public static class CoroutineExtensions
     {
         if (!coroutine.HasContext)
         {
+            //coroutine.ThrowIfNoDispatcherAffinity();
             return;
         }
 
@@ -59,11 +62,13 @@ public static class CoroutineExtensions
 
         if (coroutine.IsCanceled)
         {
+            //coroutine.ThrowIfNoDispatcherAffinity();
             return;
         }
 
         if (coroutine.IsAwaited)
         {
+            //coroutine.ThrowIfNoDispatcherAffinity();
             AwaitedCoroutineException.ThrowInvalidCancellation(coroutine);
         }
 
@@ -77,6 +82,71 @@ public static class CoroutineExtensions
             core = ref stack.Tokens[i].Item;
             core.Cancel();
         }
+    }
 
+    /// <summary>
+    /// Set the current coroutine context from a previously created <see cref="CreateContext"/>.
+    /// </summary>
+    /// <param name="context">The context to set.</param>
+    /// <typeparam name="TCoroutine"></typeparam>
+    /// <param name="coroutine">The coroutine to set the context for.</param>
+    /// <param name="context">The context to set.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void SetContext<TCoroutine>(this TCoroutine coroutine, CoroutineContext context)
+        where TCoroutine : struct, ICoroutine
+    {
+        ArgumentNullException.ThrowIfNull(context, nameof(context));
+
+        if (coroutine.Stack.CoroutineContext == context)
+        {
+            return;
+        }
+
+        coroutine.ThrowIfNoContext();
+
+        var stack = coroutine.Stack;
+
+        var coreToken = StackDispatcher.GetCoroutineCoreToken();
+        var contextStateMachine = new ContextStateMachine(context);
+        contextStateMachine.ConfigureCoreToken(coreToken);
+        stack.Push(contextStateMachine.CoreToken);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ThrowIfNoContext<TCoroutine>(this TCoroutine coroutine)
+        where TCoroutine : struct, ICoroutine
+    {
+        if (!coroutine.HasContext)
+        {
+            throw new NoContextException(coroutine);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void EnsureAwaitable<TCoroutine>(this TCoroutine coroutine)
+        where TCoroutine : struct, ICoroutine
+    {
+        coroutine.ThrowIfNoContext();
+
+        ref var core = ref coroutine.CoreToken.Item;
+
+        if (core.HasFlag(CoroutineCore.Awaited))
+        {
+            AwaitedCoroutineException.ThrowMultipleAwait(coroutine);
+        }
+
+        core.SetFlag(CoroutineCore.Awaited);
+    }
+}
+
+public static class CoroutineContextExtensions
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ThrowIfNoDispatcherAffinity(this CoroutineContext context)
+    {
+        if (context.DispatcherId != StackDispatcher.Id)
+        {
+            throw new InvalidOperationException("Coroutine context does not have dispatcher affinity");
+        }
     }
 }

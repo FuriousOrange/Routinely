@@ -13,7 +13,7 @@ public interface ICoroutineNotifyAwaiting : INotifyCompletion
 
     void INotifyCompletion.OnCompleted(Action continuation)
     {
-        throw new NoContextException();
+        throw new InvalidOperationException();
     }
 
     void GetResult();

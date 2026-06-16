@@ -1,9 +1,16 @@
 ﻿using System.Diagnostics;
+using System.Formats.Asn1;
 
 namespace Routinely;
 
 internal static class StackDispatcher
 {
+
+    private static byte currentId;
+
+    [ThreadStatic]
+    internal static byte Id = 0;
+
     [ThreadStatic]
     internal static int StackCount;
 
@@ -22,12 +29,33 @@ internal static class StackDispatcher
     [ThreadStatic]
     internal static int currentIndex;
 
+    private static readonly object threadInitLock = new();
+
     static StackDispatcher()
     {
-        stacks = new();
-        CurrentStack = null!;
-        Contexts = new();
-        CurrentContext = new(stacks, StackCount, currentIndex);
+        ThreadInit();
+        //stacks = new();
+        //CurrentStack = null!;
+        //Contexts = new();
+        //CurrentContext = new(stacks, StackCount, currentIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static internal void ThreadInit()
+    {
+        lock (threadInitLock)
+        {
+            if(Id > 0)
+            {
+                return;
+            }
+
+            Id = ++currentId;
+            stacks ??= new();
+            CurrentStack = null!;
+            Contexts ??= new();
+            CurrentContext ??= new(stacks, StackCount, currentIndex);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -44,14 +72,18 @@ internal static class StackDispatcher
         stack.CoroutineContext = CurrentContext!;
         stacks[StackCount++] = stack;
 
+        CurrentContext!.StackCount = StackCount;
+
         return stack;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ExchangeToken<CoroutineCore> GetCoroutineCoreToken()
     {
-        var core = new CoroutineCore();
-        var token = Exchange<CoroutineCore>.Put(core);
+        var token = Exchange<CoroutineCore>.Put(new CoroutineCore
+        {
+            DispatcherId = Id
+        });
         return token;
     }
 
@@ -96,14 +128,15 @@ internal static class StackDispatcher
             ExceptionBox exceptionBox = default;
             core.Result?.CheckedGet(ref exceptionBox);
 
-            if (!core.HasFlag(CoroutineCore.Awaited))
+            if (core.HasFlag(CoroutineCore.TailCall))
+            {
+                stack.Tokens[0].Item.Fault(exceptionBox);
+                stack.Exception = exceptionBox.DispatchInfo?.SourceException;
+            }
+            else if (!core.HasFlag(CoroutineCore.Awaited))
             {
                 var exception = exceptionBox.DispatchInfo?.SourceException;
                 stack.Exception = exception;
-            }
-            else if (core.HasFlag(CoroutineCore.TailCall))
-            {
-                stack.Tokens[0].Item.Fault(exceptionBox);
             }
             else
             {
@@ -150,6 +183,8 @@ internal static class StackDispatcher
             HandleFaults(exceptions);
         }
 
+        CurrentContext!.StackCount = StackCount;
+
         return StackCount != 0;
     }
 
@@ -184,6 +219,15 @@ internal static class StackDispatcher
         StackCount--;
     }
 
+    [MethodImpl (MethodImplOptions.AggressiveInlining)]
+    internal static void DetachForMigrate(CoroutineStack stack)
+    {
+        Debug.Assert(stack != null, "MigrateStack called with null stack");
+
+        DetachStack(stack);
+        CurrentContext!.StackCount = StackCount;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static CoroutineStack DetachActive()
     {
@@ -216,6 +260,13 @@ internal static class StackDispatcher
 
     internal static void SetContext(CoroutineContext context)
     {
+        ArgumentNullException.ThrowIfNull(context, nameof(context));
+
+        if(context.DispatcherId != Id)
+        {
+            throw new InvalidOperationException("Cannot set context from a different dispatcher");
+        }
+
         if (CurrentContext != null)
         {
             CurrentContext.Stacks = stacks;
