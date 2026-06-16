@@ -107,11 +107,9 @@ public static class CoroutineExtensions
         var stack = coroutine.Stack;
 
         var coreToken = StackDispatcher.GetCoroutineCoreToken();
-        var contextStateMachine = new ContextStateMachine(context, coreToken);
-        ref var core = ref coreToken.Item;
-        core.SetFlag(CoroutineCore.Awaited);
-        core.StateMachine = CoroutineStateMachine<ContextStateMachine>.CaptureStateMachine(ref contextStateMachine);
-        stack.Push(coreToken);
+        var contextStateMachine = new ContextStateMachine(context);
+        contextStateMachine.ConfigureCoreToken(coreToken);
+        stack.Push(contextStateMachine.CoreToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -138,5 +136,17 @@ public static class CoroutineExtensions
         }
 
         core.SetFlag(CoroutineCore.Awaited);
+    }
+}
+
+public static class CoroutineContextExtensions
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ThrowIfNoDispatcherAffinity(this CoroutineContext context)
+    {
+        if (context.DispatcherId != StackDispatcher.Id)
+        {
+            throw new InvalidOperationException("Coroutine context does not have dispatcher affinity");
+        }
     }
 }

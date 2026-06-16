@@ -1,11 +1,28 @@
-﻿namespace Routinely;
+﻿using Routinely.Interop;
+
+namespace Routinely;
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal struct ContextStateMachine(CoroutineContext context, ExchangeToken<CoroutineCore> coreToken) : IAsyncStateMachine
+internal struct ContextStateMachine(CoroutineContext context) : ICustomStateMachine
 {
     private readonly CoroutineContext context = context;
-    private readonly ExchangeToken<CoroutineCore> coreToken = coreToken;
     private bool started = false;
+
+    public ExchangeToken<CoroutineCore> CoreToken
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set;
+    } = null!;
+
+    public void ConfigureCoreToken(ExchangeToken<CoroutineCore> token)
+    {
+        CoreToken = token;
+        ref var core = ref CoreToken.Item;
+        core.SetFlag(CoroutineCore.Awaited);
+        core.StateMachine = CoroutineStateMachine<ContextStateMachine>.CaptureStateMachine(ref this);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void MoveNext()
@@ -19,13 +36,7 @@ internal struct ContextStateMachine(CoroutineContext context, ExchangeToken<Coro
         }
         else
         {
-            coreToken.Item.SetFlag(CoroutineCore.Completed);
+            CoreToken.Item.SetFlag(CoroutineCore.Completed);
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-
-    public void SetStateMachine(IAsyncStateMachine stateMachine)
-    {
     }
 }
