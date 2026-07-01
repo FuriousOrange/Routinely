@@ -20,8 +20,8 @@ internal struct ContextStateMachine(CoroutineContext context) : ICustomStateMach
     {
         CoreToken = token;
         ref var core = ref CoreToken.Item;
+        this.Bind(ref core);
         core.SetFlag(CoroutineCore.Awaited);
-        core.StateMachine = CoroutineStateMachine<ContextStateMachine>.CaptureStateMachine(ref this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

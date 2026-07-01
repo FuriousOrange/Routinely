@@ -47,7 +47,7 @@ internal interface ISwitchTo<TCoroutine>
 
         if (next.IsCompleted)
         {
-            //CollapseStack(ref switchTo);
+            CollapseStack(ref switchTo);
 
             switchTo.CoreToken.Item.SetFlag(CoroutineCore.Completed);
         }

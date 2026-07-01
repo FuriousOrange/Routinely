@@ -105,9 +105,6 @@ public partial struct Coroutine
         var coreToken = StackDispatcher.GetCoroutineCoreToken();
         customStateMachine.ConfigureCoreToken(coreToken);
 
-        coreToken.Item.StateMachine = CoroutineStateMachine<TCustomStateMachine>
-            .CaptureStateMachine(ref customStateMachine);
-
         var stack = StackDispatcher.GetStack();
         stack.Push(coreToken);
 

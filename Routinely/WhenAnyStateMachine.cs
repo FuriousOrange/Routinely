@@ -20,7 +20,9 @@ internal struct WhenAnyStateMachine<TCoroutine, TResult>(ExchangeToken<WhenAnyCo
     public void ConfigureCoreToken(ExchangeToken<CoroutineCore> coreToken)
     {
         CoreToken = coreToken;
-        coreToken.Item.SetFlag(CoroutineCore.CancellationContract);
+        ref var core = ref CoreToken.Item;
+        this.Bind(ref core);
+        core.SetFlag(CoroutineCore.CancellationContract);
     }
 
     [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
