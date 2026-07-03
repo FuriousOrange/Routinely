@@ -24,7 +24,7 @@ public sealed class CoroutineContext
         get;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal set;
-    } = ++nextId;
+    } = nextId++;
 
     public PartitionArray<CoroutineStack> Stacks
     {

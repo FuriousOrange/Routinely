@@ -1,4 +1,5 @@
 ﻿using Routinely.Interop;
+using Routinely.Policies;
 
 namespace Routinely;
 
@@ -14,6 +15,9 @@ public partial struct Coroutine
 {
     internal class CoroutineVoid { }
 
+    unsafe static internal delegate*<bool> ResumeAllPtr = &ThreadIsolatedPolicy.ResumeAll;
+    unsafe static internal delegate*<CoroutineContext> CreateContextPtr = &ThreadIsolatedPolicy.CreateContext;
+
     public delegate void ExceptionHandler(Exception ex);
 
     /// <summary>
@@ -24,6 +28,16 @@ public partial struct Coroutine
     static Coroutine()
     {
         ThreadInit();
+    }
+
+    public static void SetThreadPolicy<TPolicy>() where TPolicy
+        : IThreadPolicy
+    {
+        unsafe
+        {
+            ResumeAllPtr = &TPolicy.ResumeAll;
+            CreateContextPtr = &TPolicy.CreateContext;
+        }
     }
 
     /// <summary>
@@ -71,7 +85,13 @@ public partial struct Coroutine
     /// </code>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool ResumeAll() => StackDispatcher.MoveAllNext();
+    public static bool ResumeAll()
+    {
+        unsafe
+        {
+            return ResumeAllPtr();
+        }
+    }
 
     /// <summary>
     /// Forces a coroutine to yield execution and resume on the next call to <see cref="ResumeAll"/>.
@@ -721,7 +741,13 @@ public partial struct Coroutine
     /// </remarks>
     /// </summary>
     /// <returns></returns>
-    public static CoroutineContext CreateContext() => StackDispatcher.CreateContext();
+    public static CoroutineContext CreateContext()
+    {
+        unsafe
+        {
+            return CreateContextPtr();
+        }
+    }
 
     /// <summary>
     /// Set the current coroutine context from a previously created <see cref="CreateContext"/>.

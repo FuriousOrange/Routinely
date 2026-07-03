@@ -50,7 +50,7 @@ internal static class StackDispatcher
                 return;
             }
 
-            Id = ++currentId;
+            Id = currentId++;
             stacks ??= new();
             CurrentStack = null!;
             Contexts ??= new();
