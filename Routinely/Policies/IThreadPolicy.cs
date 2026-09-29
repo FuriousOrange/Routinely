@@ -7,6 +7,8 @@ public interface IThreadPolicy
     public static abstract bool ResumeAll();
 
     public static abstract CoroutineContext CreateContext();
+
+    public static abstract void ThreadInit();
 }
 
 public class ThreadIsolatedPolicy : IThreadPolicy
@@ -14,12 +16,15 @@ public class ThreadIsolatedPolicy : IThreadPolicy
     public static bool ResumeAll() => StackDispatcher.MoveAllNext();
 
     public static CoroutineContext CreateContext() => StackDispatcher.CreateContext();
+
+    public static void ThreadInit() => StackDispatcher.ThreadInit();
 }
 
 public class ThreadSharedPolicy : IThreadPolicy
 {
     public static bool ResumeAll() => StackDispatcher.MoveAllNext();
     public static CoroutineContext CreateContext() => ThreadSharedBackplane.CreateContext();
+    public static void ThreadInit() => StackDispatcher.ThreadInit();
 }
 
 public static class ThreadSharedBackplane
@@ -49,7 +54,7 @@ public static class ThreadSharedBackplane
 
             return context;
         }
-    } 
+    }
 }
 
 public sealed class BackplaneChannelProvider()

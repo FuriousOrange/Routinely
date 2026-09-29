@@ -17,6 +17,7 @@ public partial struct Coroutine
 
     unsafe static internal delegate*<bool> ResumeAllPtr = &ThreadIsolatedPolicy.ResumeAll;
     unsafe static internal delegate*<CoroutineContext> CreateContextPtr = &ThreadIsolatedPolicy.CreateContext;
+    unsafe static internal delegate*<void> ThreadInitPtr = &ThreadIsolatedPolicy.ThreadInit;
 
     public delegate void ExceptionHandler(Exception ex);
 
@@ -27,6 +28,7 @@ public partial struct Coroutine
 
     static Coroutine()
     {
+        SetThreadPolicy<ThreadIsolatedPolicy>();
         ThreadInit();
     }
 
@@ -37,6 +39,7 @@ public partial struct Coroutine
         {
             ResumeAllPtr = &TPolicy.ResumeAll;
             CreateContextPtr = &TPolicy.CreateContext;
+            ThreadInitPtr = &TPolicy.ThreadInit;
         }
     }
 
@@ -62,7 +65,7 @@ public partial struct Coroutine
     /// </remarks>
     public static ExceptionHandler? OnUnhandledException { get; set; }
 
-    public static void ThreadInit() => StackDispatcher.ThreadInit();
+    public static void ThreadInit() { unsafe { ThreadInitPtr(); } }
 
     /// <summary>
     /// Resumes all coroutines until their next yield point.

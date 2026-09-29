@@ -408,7 +408,7 @@ public class CoroutineContextTests : CoroutineTestBase
     }
 
     [TestMethod]
-    public void Coroutine_Can_Be_Manually_Migrated_Inside_Swtch_To_When_Captured()
+    public void Coroutine_Cannot_Be_Manually_Migrated_When_It_Is_Running()
     {
         // Critical test: Proves that when a coroutine migrates between contexts during a switch to,
         // the coroutine can still be manually migrated after the switch to without losing stack integrity
@@ -420,6 +420,7 @@ public class CoroutineContextTests : CoroutineTestBase
 
         async Coroutine main()
         {
+            // We'll use a switch to here to force us to manualSetContext where we can access main.
             await Coroutine.SwitchTo(manualSetContext);
         }
 
@@ -428,18 +429,16 @@ public class CoroutineContextTests : CoroutineTestBase
             // Capture mainCo here and force it to migrate manually (no await Coroutine.Context) to ensure that the stack integrity is maintained.
             // This is a valid use case for a switch to closing round the handle and interacting with it
             mainCo.SetContext(context2);
+            await Coroutine.Yield();
         }
 
         // Act
         Coroutine.SetContext(context1);
         mainCo = main();
 
-        Coroutine.ResumeAll(); // Switch to manualSetContext, which will migrate the context of mainCo to context2
-        Coroutine.ResumeAll(); // Switch to manualSetContext, which will migrate the context of mainCo to context2
-
+        var act = () => Coroutine.ResumeAll();
 
         // Assert
-        context1.StackCount.Should().Be(0);
-        context2.StackCount.Should().Be(1);
+        act.Should().Throw<InvalidOperationException>();
     }
 }

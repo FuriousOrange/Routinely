@@ -1,9 +1,11 @@
 namespace Routinely.UnitTests;
 
 using Routinely;
+using Routinely.Policies;
 using System.Collections.Concurrent;
 
-public abstract class CoroutineThreadTestBase : CoroutineTestBase
+public abstract class CoroutineThreadTestBase<TThreadPolicy> : CoroutineTestBase
+    where TThreadPolicy: IThreadPolicy
 {
     private Thread thread;
 
@@ -16,6 +18,7 @@ public abstract class CoroutineThreadTestBase : CoroutineTestBase
     [TestInitialize]
     public void TestInitialize()
     {
+        Coroutine.SetThreadPolicy<TThreadPolicy>();
         Coroutine.ThreadInit();
 
         thread = new Thread(Worker);

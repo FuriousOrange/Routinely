@@ -33,7 +33,7 @@ internal static class StackDispatcher
 
     static StackDispatcher()
     {
-        ThreadInit();
+        //ThreadInit();
         //stacks = new();
         //CurrentStack = null!;
         //Contexts = new();

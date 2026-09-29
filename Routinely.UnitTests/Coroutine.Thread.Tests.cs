@@ -1,7 +1,9 @@
-﻿namespace Routinely.UnitTests;
+﻿using Routinely.Policies;
+
+namespace Routinely.UnitTests;
 
 [TestClass]
-public class CoroutineThreadTests : CoroutineThreadTestBase
+public class CoroutineThreadTests : CoroutineThreadTestBase<ThreadIsolatedPolicy>
 {
     [TestMethod]
     public void Coroutine_Cannot_Await_A_Cross_Thread_Coroutine()
@@ -209,5 +211,20 @@ public class CoroutineThreadTests : CoroutineThreadTestBase
 
         // Assert
         act.Should().Throw<NoContextException>();
+    }
+}
+
+[TestClass]
+public class Threado : CoroutineThreadTestBase<ThreadSharedPolicy>
+{
+    [TestMethod]
+    public void MyTestMethod()
+    {
+        AddWork(() => Coroutine.CreateContext());
+        AddWork(() => Coroutine.CreateContext());
+        AddWork(() => Coroutine.CreateContext());
+        AddWork(() => Coroutine.CreateContext());
+
+        StartThread();
     }
 }

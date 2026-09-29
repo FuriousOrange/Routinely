@@ -97,6 +97,11 @@ public static class CoroutineExtensions
     {
         ArgumentNullException.ThrowIfNull(context, nameof(context));
 
+        if(coroutine.Stack == StackDispatcher.CurrentStack)
+        {
+            throw new InvalidOperationException("Cannot set context of the active dispatcher stack");
+        }
+
         if (coroutine.Stack.CoroutineContext == context)
         {
             return;
