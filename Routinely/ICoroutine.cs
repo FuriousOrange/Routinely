@@ -23,7 +23,10 @@ public interface ICoroutine : ICoroutineNotifyAwaiting
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool Contextful(ExchangeToken<CoroutineCore> token, uint id)
-        => token.Item.Id == id && token.Item.DispatcherId == StackDispatcher.Id;
+    {
+        ref var core = ref token.Item;
+        return core.Id == id && core.DispatcherId == StackDispatcher.Id;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool HasFlag(ExchangeToken<CoroutineCore> token, byte flag, uint id)
