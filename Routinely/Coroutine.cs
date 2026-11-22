@@ -144,13 +144,19 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
     /// <remarks>
     /// The core token is used internally to track it's internal <see cref="CoroutineCore"/> state.
     /// </remarks>
-    public ExchangeToken<CoroutineCore> CoreToken
+    internal ExchangeToken<CoroutineCore> CoreToken
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal set;
+        set;
     } = null!;
+
+    readonly ExchangeToken<CoroutineCore> ICoroutine.CoreToken
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => CoreToken;
+    }
 
     /// <summary>
     /// Gets the coroutine stack used to manage the execution state of this coroutine.
@@ -158,13 +164,19 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
     /// <remarks>The stack maintains the state required for coroutine execution and is intended for internal
     /// use; external code should not attempt to modify the stack
     /// directly.</remarks>
-    public CoroutineStack Stack
+    internal CoroutineStack Stack
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal set;
+        set;
     } = null!;
+
+    readonly CoroutineStack ICoroutineNotifyAwaiting.Stack
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Stack;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Coroutine()
