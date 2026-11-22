@@ -101,7 +101,6 @@ public partial struct Coroutine
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static YieldAwaiter Yield() => new();
 
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Coroutine FromCustomStateMachine<TCustomStateMachine>(ref TCustomStateMachine customStateMachine)
         where TCustomStateMachine : struct, ICustomStateMachine

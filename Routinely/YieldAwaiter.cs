@@ -1,6 +1,7 @@
 namespace Routinely;
 
-public struct YieldAwaiter : ICoroutineNotifyAwaiting
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
+public readonly struct YieldAwaiter() : ICoroutineNotifyAwaiting
 {
     [ThreadStatic]
     private static CoroutineStack stack;
@@ -21,8 +22,6 @@ public struct YieldAwaiter : ICoroutineNotifyAwaiting
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => stack;
     }
-
-    public ExchangeToken<CoroutineCore> CoreToken { get; set; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly YieldAwaiter GetAwaiter()

@@ -44,7 +44,8 @@ public readonly struct ContextAwaiter(CoroutineContext context) : ICoroutineNoti
             }
             else
             {
-                stack = StackDispatcher.CurrentStack;
+                stack = StackDispatcher.CurrentStack
+                    ?? throw new InvalidOperationException("No current stack available.");
             }
 
             // Push a context state machine onto the stack, it will migrate on the next ResumeAll

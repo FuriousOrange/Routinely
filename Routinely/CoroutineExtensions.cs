@@ -72,16 +72,8 @@ public static class CoroutineExtensions
             AwaitedCoroutineException.ThrowInvalidCancellation(coroutine);
         }
 
-        ref var cancellingCore = ref coroutine.CoreToken.Item;
         var stack = coroutine.Stack;
-
-        ref var core = ref coroutine.CoreToken.Item;
-
-        for (var i = stack.HeadIndex - 1; i >= 0; i--)
-        {
-            core = ref stack.Tokens[i].Item;
-            core.Cancel();
-        }
+        stack.Cancel();
     }
 
     /// <summary>

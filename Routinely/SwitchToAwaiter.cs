@@ -50,6 +50,7 @@ public readonly struct SwitchToAwaiter<TNextCoroutine>(Func<TNextCoroutine> next
             {
                 CoreToken = coreToken,
                 Stack = stack
+                    ?? throw new InvalidOperationException("No current stack available.")
             };
             ref var core = ref coreToken.Item;
             core.SetFlag(CoroutineCore.Awaited);
@@ -61,7 +62,7 @@ public readonly struct SwitchToAwaiter<TNextCoroutine>(Func<TNextCoroutine> next
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 public readonly struct SwitchToAwaiter<TContext, TNextCoroutine>(TContext context, Func<TContext, TNextCoroutine> next) : ICoroutineNotifyAwaiting
-    where TNextCoroutine: struct, ICoroutine
+    where TNextCoroutine : struct, ICoroutine
 {
     private readonly Func<TContext, TNextCoroutine> next = next;
     private readonly TContext context = context;
@@ -110,6 +111,7 @@ public readonly struct SwitchToAwaiter<TContext, TNextCoroutine>(TContext contex
             {
                 CoreToken = coreToken,
                 Stack = stack
+                    ?? throw new InvalidOperationException("No current stack available.")
             };
             ref var core = ref coreToken.Item;
             core.SetFlag(CoroutineCore.Awaited);

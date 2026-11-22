@@ -12,7 +12,8 @@ internal interface ISwitchTo<TCoroutine>
     internal static void CollapseStack<TSwitchTo>(ref TSwitchTo switchTo)
         where TSwitchTo : struct, ISwitchTo<TCoroutine>
     {
-        var currentStack = StackDispatcher.CurrentStack;
+        var currentStack = StackDispatcher.CurrentStack
+            ?? throw new InvalidOperationException("No current stack available.");
 
         ExchangeToken<CoroutineCore> coreToken = switchTo.CoreToken;
 

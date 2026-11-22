@@ -1,4 +1,6 @@
-﻿namespace Routinely;
+﻿using System.Collections;
+
+namespace Routinely;
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
@@ -74,6 +76,16 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
 
         target.HeadIndex = HeadIndex;
         HeadIndex = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Cancel()
+    {
+        for (var i = HeadIndex - 1; i >= 0; i--)
+        {
+            ref var core = ref Tokens[i].Item;
+            core.Cancel();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
