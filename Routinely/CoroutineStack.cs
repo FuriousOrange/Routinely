@@ -26,7 +26,6 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Bump(ExchangeToken<CoroutineCore> token)
     {
-        HeadIndex++;
 
         while (HeadIndex >= Tokens.Length)
         {
@@ -39,6 +38,8 @@ public class CoroutineStack(ExchangeToken<CoroutineStack> stackToken)
         }
 
         Tokens[0] = token;
+
+        HeadIndex++;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -58,14 +58,6 @@ public sealed class CoroutineContext
             Stacks.Expand();
         }
 
-
-        //// We want to request a new stack here and migrate the old stack over
-        //// to the stack in this context. This allows the dispatcher to cleanup the old stack.
-        //var newStack = CoroutineStack.Get();
-        //newStack.CoroutineContext = this;
-
-        //stack.MigrateStack(newStack);
-
         stack.CoroutineContext = this;
         stack.DispatcherIndex = StackCount;
         Stacks[StackCount++] = stack;
