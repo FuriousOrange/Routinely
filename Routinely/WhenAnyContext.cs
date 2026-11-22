@@ -12,4 +12,10 @@ internal struct WhenAnyContext<TCoroutine, TResult>(TCoroutine[] coroutines)
     internal readonly TCoroutine[] Coroutines = coroutines;
 
     internal TCoroutine? Result;
+
+    public readonly bool HasContext
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Id != 0;
+    }
 }

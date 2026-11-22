@@ -467,7 +467,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
 
         // Act
         var mainCo = Coroutine.WhenAll(completedCo, faultedCo);
-        var act = () => DrainCoroutines(@throw: true);
+        var act = () => Coroutine.Drain(@throw: true);
 
         // Assert
         act.Should().Throw<AggregateException>()
@@ -491,7 +491,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
 
         // Act
         var mainCo = Coroutine.WhenAll(completedCo, faultedCo);
-        var act = () => DrainCoroutines(@throw: true);
+        var act = () => Coroutine.Drain(@throw: true);
 
         // Assert
         act.Should().Throw<AggregateException>()

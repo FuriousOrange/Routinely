@@ -1,7 +1,7 @@
 ﻿namespace Routinely;
 
 internal struct WhenAllContext<TCoroutine, TResult>(TCoroutine[] coroutines, TResult[]? results)
-    where TCoroutine: struct, ICoroutine<TResult>
+    where TCoroutine : struct, ICoroutine<TResult>
 {
     [ThreadStatic]
     private static int CurrentId;
@@ -12,4 +12,10 @@ internal struct WhenAllContext<TCoroutine, TResult>(TCoroutine[] coroutines, TRe
 
     internal readonly int Id = ++CurrentId;
     internal List<Exception>? Exceptions;
+
+    public readonly bool HasContext
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Id != 0;
+    }
 }

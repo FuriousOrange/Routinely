@@ -745,9 +745,17 @@ public partial struct Coroutine
     /// This will restore the default context and drop all other contexts. 
     /// Use this method to clean up any contexts created with <see cref="CreateContext"/> when they are no longer needed.
     /// </summary>
-    public static void DisposeContexts()
+    public static void Dispose()
     {
-        // Drop the all contexts
+        // Cancel all contexts to ensure a clean state
+        foreach(var context in StackDispatcher.Contexts)
+        {
+            SetContext(context);
+            Cancel();
+            Drain();
+        }
+
+        // Clear the contexts list to remove all contexts, including the main context.
         StackDispatcher.Contexts.Clear();
 
         // Restore the default context
@@ -755,6 +763,30 @@ public partial struct Coroutine
 
         // Register the main context again
         StackDispatcher.Contexts.Add(StackDispatcher.MainContext);
+    }
+
+    public static void Cancel() => StackDispatcher.CurrentContext?.Cancel();
+
+    public static void Drain(bool @throw = false)
+    {
+        while (StackDispatcher.StackCount > 0)
+        {
+            {
+                try
+                {
+                    while (ResumeAll())
+                    {
+                    }
+                }
+                catch (Exception)
+                {
+                    if (!@throw)
+                        continue;
+
+                    throw;
+                }
+            }
+        }
     }
 
     /// <summary>

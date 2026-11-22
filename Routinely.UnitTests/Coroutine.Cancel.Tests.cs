@@ -768,9 +768,10 @@ public class CoroutineCancelTests : CoroutineTestBase
 
         var mainCo = main();
         mainCo.Cancel();
-        StackDispatcher.MoveAllNext();
+        Coroutine.ResumeAll();
 
-        DrainCoroutines();
+
+        Coroutine.Drain();
 
         finished.Should().BeTrue();
     }
@@ -817,7 +818,7 @@ public class CoroutineCancelTests : CoroutineTestBase
         // Assert
         mainCo.IsCompleted.Should().BeTrue();
         mainCo.IsCanceled.Should().BeTrue();
-        DrainCoroutines();
+        Coroutine.Drain();
         finished.Should().BeTrue();
     }
 
@@ -869,7 +870,7 @@ public class CoroutineCancelTests : CoroutineTestBase
         subStarted.Should().BeTrue();
         subFinished.Should().BeFalse(); // Still running after parent disposed
 
-        DrainCoroutines();              // Finish sub()
+        Coroutine.Drain();              // Finish sub()
 
         subFinished.Should().BeTrue();
     }

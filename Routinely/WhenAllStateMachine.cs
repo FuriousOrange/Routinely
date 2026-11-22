@@ -30,7 +30,7 @@ internal struct WhenAllStateMachine<TCoroutine, TResult>(ExchangeToken<WhenAllCo
 
         ref var core = ref CoreToken.Item;
 
-        if (core.HasFlag(CoroutineCore.Canceled))
+        if (core.HasFlag(CoroutineCore.Canceled) && context.HasContext)
         {
             for (var i = 0; i < context.Coroutines.Length; i++)
             {

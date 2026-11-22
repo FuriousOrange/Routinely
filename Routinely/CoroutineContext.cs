@@ -51,6 +51,17 @@ public sealed class CoroutineContext
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Cancel()
+    {
+        var cancelLimit = StackCount;
+
+        for (var i = 0; i < cancelLimit; i++)
+        {
+            Stacks[i].Cancel();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void MigrateStack(CoroutineStack stack)
     {
         while (StackCount >= Stacks.Length)

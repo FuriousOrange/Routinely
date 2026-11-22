@@ -7,6 +7,9 @@ public static class CoroutineCoreExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void Cancel(ref this CoroutineCore core)
     {
+        if(core.HasFlag(CoroutineCore.Completed | CoroutineCore.Canceled))
+            return;
+
         core.SetFlag(CoroutineCore.Completed | CoroutineCore.Canceled);
 
         if (core.HasFlag(CoroutineCore.CancellationContract))
