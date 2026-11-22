@@ -21,6 +21,12 @@ public partial struct Coroutine
     /// </summary>
     public static int Count => StackDispatcher.StackCount;
 
+    public static CoroutineContext MainContext
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => StackDispatcher.MainContext;
+    }
+
     static Coroutine()
     {
         ThreadInit();
@@ -48,6 +54,9 @@ public partial struct Coroutine
     /// </remarks>
     public static ExceptionHandler? OnUnhandledException { get; set; }
 
+    /// <summary>
+    /// Initializes stack dispatching for the current thread.
+    /// </summary>
     public static void ThreadInit() => StackDispatcher.ThreadInit();
 
     /// <summary>
@@ -739,16 +748,14 @@ public partial struct Coroutine
     /// </summary>
     public static void DisposeContexts()
     {
-        if(StackDispatcher.Contexts.Count == 0)
-        {
-            return;
-        }
-
-        // Restore default context
-        SetContext(StackDispatcher.Contexts[0]);
-
-        // Drop the rest
+        // Drop the all contexts
         StackDispatcher.Contexts.Clear();
+
+        // Restore the default context
+        StackDispatcher.SetContext(StackDispatcher.MainContext);
+
+        // Register the main context again
+        StackDispatcher.Contexts.Add(StackDispatcher.MainContext);
     }
 
     /// <summary>

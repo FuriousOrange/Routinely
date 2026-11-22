@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using System.Formats.Asn1;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Routinely;
 
@@ -7,6 +7,9 @@ internal static class StackDispatcher
 {
 
     private static byte currentId;
+
+    [ThreadStatic]
+    private static bool initialized;
 
     [ThreadStatic]
     internal static byte Id = 0;
@@ -21,10 +24,13 @@ internal static class StackDispatcher
     internal static List<CoroutineContext> Contexts;
 
     [ThreadStatic]
+    internal static CoroutineContext MainContext;
+
+    [ThreadStatic]
     internal static CoroutineContext? CurrentContext;
 
     [ThreadStatic]
-    internal static CoroutineStack CurrentStack;
+    internal static CoroutineStack? CurrentStack;
 
     [ThreadStatic]
     internal static int currentIndex;
@@ -34,27 +40,33 @@ internal static class StackDispatcher
     static StackDispatcher()
     {
         ThreadInit();
-        //stacks = new();
-        //CurrentStack = null!;
-        //Contexts = new();
-        //CurrentContext = new(stacks, StackCount, currentIndex);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MemberNotNull(nameof(stacks), nameof(Contexts), nameof(MainContext), nameof(CurrentContext))]
     static internal void ThreadInit()
     {
         lock (threadInitLock)
         {
-            if(Id > 0)
+            if (initialized)
             {
-                return;
+                if (stacks != null && Contexts != null && MainContext != null && CurrentContext != null)
+                {
+                    return;
+                }
+                else
+                {
+                    throw new InvalidOperationException("StackDispatcher thread initialization failed");
+                }
             }
 
             Id = ++currentId;
             stacks ??= new();
             CurrentStack = null!;
-            Contexts ??= new();
-            CurrentContext ??= new(stacks, StackCount, currentIndex);
+            MainContext ??= new(stacks, StackCount, currentIndex);
+            CurrentContext ??= MainContext;
+            Contexts ??= [MainContext];
+            initialized = true;
         }
     }
 
@@ -90,7 +102,7 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void MergeActive(CoroutineStack awaitStack)
     {
-        CurrentStack.MergeStack(awaitStack);
+        CurrentStack?.MergeStack(awaitStack);
         ReturnStack(awaitStack);
     }
 
@@ -219,7 +231,7 @@ internal static class StackDispatcher
         StackCount--;
     }
 
-    [MethodImpl (MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void DetachForMigrate(CoroutineStack stack)
     {
         Debug.Assert(stack != null, "MigrateStack called with null stack");
@@ -246,14 +258,7 @@ internal static class StackDispatcher
     {
         CoroutineContext context;
 
-        if (Contexts.Count == 0)
-        {
-            Contexts.Add(context = CurrentContext!);
-        }
-        else
-        {
-            Contexts.Add(context = new CoroutineContext(new(), 0, 0));
-        }
+        Contexts.Add(context = new CoroutineContext(new(), 0, 0));
 
         return context;
     }
@@ -262,7 +267,7 @@ internal static class StackDispatcher
     {
         ArgumentNullException.ThrowIfNull(context, nameof(context));
 
-        if(context.DispatcherId != Id)
+        if (context.DispatcherId != Id)
         {
             throw new InvalidOperationException("Cannot set context from a different dispatcher");
         }

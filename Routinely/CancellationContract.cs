@@ -69,7 +69,8 @@ public sealed partial class CancellationContract : ICoroutineNotifyAwaited<Cance
         }
         else
         {
-            Stack = StackDispatcher.CurrentStack;
+            Stack = StackDispatcher.CurrentStack
+                ?? throw new InvalidOperationException("No current stack available.");
         }
 
         coreToken = coroutine.CoreToken;

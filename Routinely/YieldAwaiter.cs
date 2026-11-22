@@ -47,7 +47,8 @@ public struct YieldAwaiter : ICoroutineNotifyAwaiting
         else
         {
             // Otherwise just return the current stack we're working with
-            stack = StackDispatcher.CurrentStack;
+            stack = StackDispatcher.CurrentStack
+                ?? throw new InvalidOperationException("No current stack available.");
         }
     }
 }
