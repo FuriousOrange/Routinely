@@ -390,4 +390,70 @@ public class CoroutineWhenAnyTests : CoroutineTestBase
         subCo1.IsCanceled.Should().BeTrue();
         subCo2.IsCanceled.Should().BeTrue();
     }
+
+    [TestMethod]
+    public void WhenAny_Unawaits_Losing_Awaiteds()
+    {
+        // Arrange
+        static async Coroutine sub() => await Coroutine.Yield();
+        static async Coroutine sub2()
+        {
+            await Coroutine.Yield();
+            await Coroutine.Yield();
+        }
+        
+        var subCo1 = sub();
+        var subCo2 = sub2();
+
+        var mainCo = Coroutine.WhenAny(subCo1, subCo2);
+
+        // Act, Assert
+        subCo1.IsAwaited.Should().BeTrue();
+        subCo2.IsAwaited.Should().BeTrue();
+
+        mainCo.ResumeUntil(c => c.IsCompleted);
+
+        subCo1.IsAwaited.Should().BeFalse();
+        subCo2.IsAwaited.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void WhenAny_Await_Duplicate_Coroutine_Throws_Multiple_Await()
+    {
+        // Arrange
+        async Coroutine sub()
+        {
+            await Coroutine.Yield();
+        }
+
+        var subCo = sub();
+
+        // Act
+        var act = () => Coroutine.WhenAny(subCo, subCo);
+
+        // Assert
+        act.Should().Throw<AwaitedCoroutineException>().And.AwaitedCoroutine.Should().Be(subCo);
+        subCo.IsAwaited.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void WhenAny_Await_Duplicate_Coroutine_With_Non_Duplicate_Throws_Multiple_Await()
+    {
+        // Arrange
+        async Coroutine sub()
+        {
+            await Coroutine.Yield();
+        }
+
+        var subCo1 = sub();
+        var subCo2 = sub();
+
+        // Act
+        var act = () => Coroutine.WhenAny(subCo2, subCo1, subCo1);
+
+        // Assert
+        act.Should().Throw<AwaitedCoroutineException>().And.AwaitedCoroutine.Should().Be(subCo1);
+        subCo1.IsAwaited.Should().BeTrue();
+        subCo2.IsAwaited.Should().BeFalse();
+    }
 }

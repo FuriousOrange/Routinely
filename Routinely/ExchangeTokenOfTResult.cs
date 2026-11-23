@@ -15,7 +15,7 @@ public class ExchangeToken<TResult> : ExchangeToken
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Return(bool clearItem = true)
     {
-        //Exchange<TResult>.Head ??= new ExchangeToken<TResult>(TypeId, default!);
+        Exchange<TResult>.Head ??= new ExchangeToken<TResult>(TypeId, default!);
 
         var currentFree = Exchange<TResult>.Head.Free;
         if(clearItem)

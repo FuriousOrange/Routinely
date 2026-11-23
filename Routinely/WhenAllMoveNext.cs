@@ -8,7 +8,7 @@ internal readonly struct WhenAllMoveNext<TCoroutine, TResult>(int index, Exchang
 {
     private readonly int index = index;
     private readonly ExchangeToken<WhenAllContext<TCoroutine, TResult>> contextToken = contextToken;
-    private readonly int id = contextToken.Item.Id;
+    private readonly uint id = contextToken.Item.Id;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void MoveNext<TStateMachine>(ref TStateMachine stateMachine, ref CoroutineCore core)

@@ -143,7 +143,7 @@ public partial struct Coroutine
     /// This method is non allocating.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Coroutine WhenAll(params Coroutine[] coroutines) 
+    public static Coroutine WhenAll(params Coroutine[] coroutines)
         => WhenAll<Coroutine, CoroutineVoid>(coroutines, null);
 
     /// <summary>
@@ -155,7 +155,7 @@ public partial struct Coroutine
     /// This method is allocating. It creates a defensive array copy of the provided coroutines.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Coroutine WhenAll(IEnumerable<Coroutine> coroutines) 
+    public static Coroutine WhenAll(IEnumerable<Coroutine> coroutines)
         => WhenAll<Coroutine, CoroutineVoid>([.. coroutines], null);
 
     /// <summary>
@@ -167,7 +167,7 @@ public partial struct Coroutine
     /// This method is allocating. It creates an array to hold the results of the provided coroutines.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Coroutine<T?[]> WhenAll<T>(params Coroutine<T>[] coroutines) 
+    public static Coroutine<T?[]> WhenAll<T>(params Coroutine<T>[] coroutines)
         => WhenAll(coroutines, new T[coroutines.Length]);
 
     /// <summary>
@@ -226,8 +226,6 @@ public partial struct Coroutine
         if (results != null && coroutines.Length != results.Length)
             throw new ArgumentException("The length of the results array must match the number of coroutines.", nameof(results));
 
-        ExchangeToken<WhenAllContext<TCoroutine, TResult>>? contextToken = null;
-
         var completedCount = 0;
 
         for (var i = 0; i < coroutines.Length; i++)
@@ -235,50 +233,47 @@ public partial struct Coroutine
             ref var coroutine = ref coroutines[i];
 
             coroutine.ThrowIfNoContext();
-            //coroutine.ThrowIfNoDispatcherAffinity();
+            coroutine.ThrowIfAwaited();
 
             if (coroutine.IsCompleted)
             {
+                completedCount++;
+
                 if (results != null)
                 {
                     results[i] = coroutine.Result!;
                 }
+            }
+            
+        }
 
-                completedCount++;
+        if (completedCount == coroutines.Length)
+        {
+            return FromResult(results!)!;
+        }
+
+        coroutines.SetAwaited();
+
+        var context = new WhenAllContext<TCoroutine, TResult>(coroutines, results);
+        var contextToken = Exchange<WhenAllContext<TCoroutine, TResult>>.Put(context);
+
+        for (var i = 0; i < coroutines.Length; i++)
+        {
+            ref var coroutine = ref coroutines[i];
+            
+            if(coroutine.IsCompleted)
+            {
                 continue;
             }
 
             ref var core = ref coroutine.CoreToken.Item;
 
-            if (core.HasFlag(CoroutineCore.Awaited))
-            {
-                contextToken?.Return();
-                AwaitedCoroutineException.ThrowMultipleAwait(coroutine);
-            }
-
-            core.SetFlag(CoroutineCore.Awaited);
-
-            if (contextToken == null)
-            {
-                var context = new WhenAllContext<TCoroutine, TResult>(coroutines, results);
-                contextToken = Exchange<WhenAllContext<TCoroutine, TResult>>.Put(context);
-            }
-
             var moveNext = new WhenAllMoveNext<TCoroutine, TResult>(i, contextToken);
             BridgeMoveNext(ref moveNext, ref coroutine);
         }
 
-        if (contextToken != null)
-        {
-            contextToken.Item.Count = coroutines.Length - completedCount;
-        }
-
-        if (completedCount == coroutines.Length)
-        {
-            contextToken?.Return();
-            return FromResult(results!)!;
-        }
-
+        contextToken.Item.Count = coroutines.Length - completedCount;
+ 
         var stateMachine = new WhenAllStateMachine<TCoroutine, TResult>(contextToken!);
 
         return FromCustomStateMachine<WhenAllStateMachine<TCoroutine, TResult>, TResult?[]>(ref stateMachine);
@@ -293,7 +288,7 @@ public partial struct Coroutine
     /// This method is non allocating.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Coroutine<Coroutine> WhenAny(params Coroutine[] coroutines) 
+    public static Coroutine<Coroutine> WhenAny(params Coroutine[] coroutines)
         => WhenAny<Coroutine, CoroutineVoid>(coroutines);
 
     /// <summary>
@@ -305,7 +300,7 @@ public partial struct Coroutine
     /// This method is allocating. It creates a defensive array copy of the provided coroutines.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Coroutine<Coroutine> WhenAny(IEnumerable<Coroutine> coroutines) 
+    public static Coroutine<Coroutine> WhenAny(IEnumerable<Coroutine> coroutines)
         => WhenAny<Coroutine, CoroutineVoid>([.. coroutines]);
 
     /// <summary>
@@ -317,7 +312,7 @@ public partial struct Coroutine
     /// This method is non allocating.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Coroutine<Coroutine<TResult>> WhenAny<TResult>(params Coroutine<TResult>[] coroutines) 
+    public static Coroutine<Coroutine<TResult>> WhenAny<TResult>(params Coroutine<TResult>[] coroutines)
         => WhenAny<Coroutine<TResult>, TResult>(coroutines);
 
     /// <summary>
@@ -329,7 +324,7 @@ public partial struct Coroutine
     /// This method is allocating. It creates a defensive array copy of the provided coroutines.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Coroutine<Coroutine<TResult>> WhenAny<TResult>(IEnumerable<Coroutine<TResult>> coroutines) 
+    public static Coroutine<Coroutine<TResult>> WhenAny<TResult>(IEnumerable<Coroutine<TResult>> coroutines)
         => WhenAny<Coroutine<TResult>, TResult>([.. coroutines]);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -343,37 +338,38 @@ public partial struct Coroutine
             throw new ArgumentException("At least one coroutine must be provided.", nameof(coroutines));
         }
 
-        ExchangeToken<WhenAnyContext<TCoroutine, TResult>>? contextToken = null;
+        TCoroutine? result = null;
+        for (var i = 0; i < coroutines.Length; i++)
+        {
+            ref var coroutine = ref coroutines[i];
+
+            coroutine.ThrowIfNoContext();
+            coroutine.ThrowIfAwaited();
+
+            if (coroutine.IsCompleted && result == null)
+            {
+                result = coroutine;
+            }
+
+        }
+
+        if(result != null)
+        {
+            return FromResult(result.Value);
+        }
+
+        coroutines.SetAwaited();
+
+        var context = new WhenAnyContext<TCoroutine, TResult>(coroutines);
+        var contextToken = Exchange<WhenAnyContext<TCoroutine, TResult>>.Put(context);
 
         for (var i = 0; i < coroutines.Length; i++)
         {
-            var coroutine = coroutines[i];
-
-            coroutine.ThrowIfNoContext();
-
-            if (coroutine.IsCompleted)
-            {
-                contextToken?.Return();
-                return FromResult(coroutine);
-            }
-
+            ref var coroutine = ref coroutines[i];
             ref var core = ref coroutine.CoreToken.Item;
 
-            if (core.HasFlag(CoroutineCore.Awaited))
-            {
-                contextToken?.Return();
-                AwaitedCoroutineException.ThrowMultipleAwait(coroutine);
-            }
-
-            core.SetFlag(CoroutineCore.Awaited);
-
-            if (contextToken == null)
-            {
-                var context = new WhenAnyContext<TCoroutine, TResult>(coroutines);
-                contextToken = Exchange<WhenAnyContext<TCoroutine, TResult>>.Put(context);
-            }
-
             var moveNext = new WhenAnyMoveNext<TCoroutine, TResult>(contextToken, ref coroutine);
+
             BridgeMoveNext(ref moveNext, ref coroutine);
         }
 
@@ -432,7 +428,7 @@ public partial struct Coroutine
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SwitchToAwaiter<TCoroutine> SwitchTo<TCoroutine>(Func<TCoroutine> next)
-        where TCoroutine: struct, ICoroutine
+        where TCoroutine : struct, ICoroutine
         => new(next);
 
     /// <summary>
@@ -464,7 +460,7 @@ public partial struct Coroutine
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SwitchToAwaiter<TContext, TCoroutine> SwitchTo<TContext, TCoroutine>(TContext context, Func<TContext, TCoroutine> next)
-        where TCoroutine: struct, ICoroutine
+        where TCoroutine : struct, ICoroutine
         => new(context, next);
 
     /// <summary>
@@ -607,7 +603,7 @@ public partial struct Coroutine
     /// <returns>A coroutine representing the task.</returns>
     public static Coroutine FromValueTask(ValueTask valueTask)
     {
-        if(valueTask.IsCompleted)
+        if (valueTask.IsCompleted)
         {
             valueTask.GetAwaiter().GetResult();
             return CompletedCoroutine;
@@ -748,7 +744,7 @@ public partial struct Coroutine
     public static void Dispose()
     {
         // Cancel all contexts to ensure a clean state
-        foreach(var context in StackDispatcher.Contexts)
+        foreach (var context in StackDispatcher.Contexts)
         {
             SetContext(context);
             Cancel();

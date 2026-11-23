@@ -5,7 +5,6 @@ internal sealed class Exchange<T> : Exchange
     [ThreadStatic]
     internal static ExchangeToken<T> Head;
 
-    //[ThreadStatic]
     internal static int TypeId;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

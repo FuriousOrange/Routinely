@@ -51,7 +51,6 @@ public static class CoroutineExtensions
     {
         if (!coroutine.HasContext)
         {
-            //coroutine.ThrowIfNoDispatcherAffinity();
             return;
         }
 
@@ -62,13 +61,11 @@ public static class CoroutineExtensions
 
         if (coroutine.IsCanceled)
         {
-            //coroutine.ThrowIfNoDispatcherAffinity();
             return;
         }
 
         if (coroutine.IsAwaited)
         {
-            //coroutine.ThrowIfNoDispatcherAffinity();
             AwaitedCoroutineException.ThrowInvalidCancellation(coroutine);
         }
 
@@ -115,30 +112,68 @@ public static class CoroutineExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void EnsureAwaitable<TCoroutine>(this TCoroutine coroutine)
+    internal static void SetAwaited<TCoroutine>(ref this TCoroutine coroutine)
         where TCoroutine : struct, ICoroutine
     {
+        if(coroutine.IsCompleted)
+        {
+            return;
+        }
+
         coroutine.ThrowIfNoContext();
+        coroutine.ThrowIfAwaited();
 
         ref var core = ref coroutine.CoreToken.Item;
 
-        if (core.HasFlag(CoroutineCore.Awaited))
-        {
-            AwaitedCoroutineException.ThrowMultipleAwait(coroutine);
-        }
+        //if (core.HasFlag(CoroutineCore.Awaited))
+        //{
+        //    AwaitedCoroutineException.ThrowMultipleAwait(coroutine);
+        //}
 
         core.SetFlag(CoroutineCore.Awaited);
     }
-}
 
-public static class CoroutineContextExtensions
-{
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrowIfNoDispatcherAffinity(this CoroutineContext context)
+    internal static void SetAwaited<TCoroutine>(this TCoroutine[] coroutines)
+        where TCoroutine : struct, ICoroutine
     {
-        if (context.DispatcherId != StackDispatcher.Id)
+        try
         {
-            throw new InvalidOperationException("Coroutine context does not have dispatcher affinity");
+            for (var i = 0; i < coroutines.Length; i++)
+            {
+                coroutines[i].SetAwaited();
+            }
+        }
+        catch (Exception ex)
+        {
+            ICoroutine? awaitedCoroutine = null;
+
+            if(ex is AwaitedCoroutineException awaitedCoroutineException)
+            {
+                awaitedCoroutine = awaitedCoroutineException.AwaitedCoroutine;
+            }
+
+            for(var i = 0; i < coroutines.Length; i++)
+            {
+                ref var coroutine = ref coroutines[i];
+
+                if (coroutine.HasContext && awaitedCoroutine?.Equals(coroutine) == false)
+                {
+                    coroutine.CoreToken.Item.ClearFlag(CoroutineCore.Awaited);
+                }
+            }
+
+            throw;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void ThrowIfAwaited<TCoroutine>(ref this TCoroutine coroutine)
+        where TCoroutine : struct, ICoroutine
+    {
+        if (coroutine.IsAwaited)
+        {
+            AwaitedCoroutineException.ThrowMultipleAwait(coroutine);
         }
     }
 }

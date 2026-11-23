@@ -26,9 +26,9 @@ public partial class RoutinelyBenchmark
     {
         static async Coroutine Work(int depth)
         {
-            if (depth < 5)
+            if (depth > 0)
             {
-                await Work(depth + 1);
+                await Work(depth - 1);
             }
 
             await Coroutine.Yield();
@@ -84,9 +84,9 @@ public partial class RoutinelyBenchmark
 
             try
             {
-                if (depth < 5)
+                if (depth > 0)
                 {
-                    await Work(depth + 1).Enforce(ctc);
+                    await Work(depth - 1).Enforce(ctc);
                 }
 
                 await Coroutine.Yield().Enforce(ctc);

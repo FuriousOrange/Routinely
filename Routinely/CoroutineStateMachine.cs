@@ -25,10 +25,8 @@ internal struct CoroutineStateMachine
         }
     }
 
-    //[ThreadStatic]
     internal static int IdCounter;
 
-    //[ThreadStatic]
     internal static ContinuationTrampolines[] Trampolines;
 
     internal int Id;
@@ -38,7 +36,7 @@ internal struct CoroutineStateMachine
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static CoroutineStateMachine()
     {
-        Trampolines = new ContinuationTrampolines[2];
+        Trampolines = new ContinuationTrampolines[256];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

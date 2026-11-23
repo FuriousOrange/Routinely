@@ -15,15 +15,13 @@ internal class Exchange
         }
     }
 
-    //[ThreadStatic]
     internal static int TypeIdCounter;
 
-    //[ThreadStatic]
     internal static ExchangeTrampolines[] Trampolines;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Exchange()
     {
-        Trampolines = new ExchangeTrampolines[16];
+        Trampolines = new ExchangeTrampolines[256];
     }
 }

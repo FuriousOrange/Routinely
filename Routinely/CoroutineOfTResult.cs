@@ -205,14 +205,14 @@ public partial struct Coroutine<TResult> : ICoroutine<TResult>, ICoroutineNotify
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Coroutine<TResult> GetAwaiter()
+    public Coroutine<TResult> GetAwaiter()
     {
         if (isCompleted)
             return this;
 
         this.ThrowIfNoContext();
 
-        this.EnsureAwaitable();
+        this.SetAwaited();
 
         return this;
     }

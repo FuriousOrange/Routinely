@@ -28,14 +28,16 @@ public interface ICoroutineMethodBuilder<TCoroutine, TResult>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void SetResultVoid(Coroutine coroutine)
+    internal static void SetResultVoid(ref Coroutine coroutine)
     {
-        if(coroutine.IsCompleted)
+
+        if (coroutine.IsCompleted)
         {
             return;
         }
         else
         {
+            coroutine.isCompleted = true;
             coroutine.CoreToken.Item.SetFlag(CoroutineCore.Completed);
         }
     }

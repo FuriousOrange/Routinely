@@ -49,6 +49,15 @@ internal struct WhenAnyStateMachine<TCoroutine, TResult>(ExchangeToken<WhenAnyCo
         {
             core.SetResult(context.Result.Value);
             core.SetFlag(CoroutineCore.Completed);
+
+            for(var i = 0; i < context.Coroutines.Length; i++)
+            {
+                var coroutine = context.Coroutines[i];
+
+                // Need to clear awaited that was set during intial Coroutine.WhenAny
+                coroutine.CoreToken.Item.ClearFlag(CoroutineCore.Awaited);
+            }
+
             contextToken.Return();
         }
     }

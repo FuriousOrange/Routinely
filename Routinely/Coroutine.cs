@@ -191,12 +191,12 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Coroutine GetAwaiter()
+    public Coroutine GetAwaiter()
     {
         if (isCompleted)
             return this;
 
-        this.EnsureAwaitable();
+        this.SetAwaited();
 
         return this;
     }

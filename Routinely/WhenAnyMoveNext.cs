@@ -6,7 +6,7 @@ internal struct WhenAnyMoveNext<TCoroutine, TResult> : IMoveNextStateMachine
     where TCoroutine : struct, ICoroutine<TResult>
 {
     private readonly ExchangeToken<WhenAnyContext<TCoroutine, TResult>> contextToken;
-    private readonly int id;
+    private readonly uint id;
     private readonly TCoroutine coroutine;
 
     public ExchangeToken<CoroutineCore> CoreToken { get; set; } = null!;

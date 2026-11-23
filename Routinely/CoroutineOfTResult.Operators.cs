@@ -35,5 +35,5 @@ public partial struct Coroutine<TResult> :
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override readonly int GetHashCode()
-        => base.GetHashCode();
+        => Id.GetHashCode();
 }

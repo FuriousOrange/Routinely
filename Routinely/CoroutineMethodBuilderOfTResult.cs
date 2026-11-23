@@ -17,7 +17,7 @@ public struct CoroutineMethodBuilder<TResult> : ICoroutineMethodBuilder<Coroutin
     public static CoroutineMethodBuilder<TResult> Create() => new();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void SetException(Exception ex)
+    public void SetException(Exception ex)
         => ICoroutineMethodBuilder<Coroutine<TResult>, TResult>.SetException(in coroutine, ex);
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,7 +37,7 @@ public struct CoroutineMethodBuilder<TResult> : ICoroutineMethodBuilder<Coroutin
         => AwaitOnCompleted(ref awaiter, ref stateMachine);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Start<TStateMachine>(ref TStateMachine stateMachine)
+    public void Start<TStateMachine>(ref TStateMachine stateMachine)
         where TStateMachine : IAsyncStateMachine
         => ICoroutineMethodBuilder<Coroutine<TResult>, TResult>.StartInternal(ref stateMachine);
 

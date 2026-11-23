@@ -497,4 +497,44 @@ public class CoroutineWhenAllTests : CoroutineTestBase
         act.Should().Throw<AggregateException>()
             .And.InnerExceptions.Should().Contain(expectedException);
     }
+
+    [TestMethod]
+    public void WhenAll_Await_Duplicate_Coroutine_Throws_Multiple_Await()
+    {
+        // Arrange
+        async Coroutine sub()
+        {
+            await Coroutine.Yield();
+        }
+
+        var subCo = sub();
+
+        // Act
+        var act = () => Coroutine.WhenAll(subCo, subCo);
+
+        // Assert
+        act.Should().Throw<AwaitedCoroutineException>().And.AwaitedCoroutine.Should().Be(subCo);
+        subCo.IsAwaited.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void WhenAll_Await_Duplicate_Coroutine_With_Non_Duplicate_Throws_Multiple_Await()
+    {
+        // Arrange
+        async Coroutine sub()
+        {
+            await Coroutine.Yield();
+        }
+
+        var subCo1 = sub();
+        var subCo2 = sub();
+
+        // Act
+        var act = () => Coroutine.WhenAll(subCo2, subCo1, subCo1);
+
+        // Assert
+        act.Should().Throw<AwaitedCoroutineException>().And.AwaitedCoroutine.Should().Be(subCo1);
+        subCo1.IsAwaited.Should().BeTrue();
+        subCo2.IsAwaited.Should().BeFalse();
+    }
 }

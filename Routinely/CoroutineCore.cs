@@ -6,9 +6,6 @@ namespace Routinely;
 [SkipLocalsInit]
 public struct CoroutineCore
 {
-    [ThreadStatic]
-    internal static uint CurrentId;
-
     internal const int
         Completed = 1 << 0,
         Faulted = 1 << 1,
@@ -35,6 +32,6 @@ public struct CoroutineCore
 
     public override readonly string ToString()
     {
-        return $"Completed: {this.HasFlag(Completed)}, Faulted: {this.HasFlag(Faulted)}, Canceled: {this.HasFlag(Canceled)}, CancelationContract: {this.HasFlag(CancellationContract)}, Awaited: {this.HasFlag(Awaited)}, TailCall: {this.HasFlag(TailCall)}, Id: {Id}";
+        return $"Completed: {this.HasFlag(Completed)}, Faulted: {this.HasFlag(Faulted)}, Canceled: {this.HasFlag(Canceled)}, CancellationContract: {this.HasFlag(CancellationContract)}, Awaited: {this.HasFlag(Awaited)}, TailCall: {this.HasFlag(TailCall)}, Id: {Id}";
     }
 }

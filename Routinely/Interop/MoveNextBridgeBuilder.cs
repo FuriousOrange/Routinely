@@ -1,10 +1,10 @@
 ﻿namespace Routinely.Interop;
 
 internal sealed class MoveNextBridgeBuilder<TMoveNextStateMachine> : IMoveNextBridgeBuilder
-    where TMoveNextStateMachine : IMoveNextStateMachine
+    where TMoveNextStateMachine : struct, IMoveNextStateMachine
 {
     [ThreadStatic]
-    unsafe private static void* stateMachinePtr;
+    private static TMoveNextStateMachine stateMachine;
 
     [ThreadStatic]
     private static ExchangeToken<CoroutineCore>? coreToken;
@@ -19,17 +19,18 @@ internal sealed class MoveNextBridgeBuilder<TMoveNextStateMachine> : IMoveNextBr
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    unsafe internal static MoveNextBridgeBuilder<TMoveNextStateMachine> Start(ref TMoveNextStateMachine moveNextStateMachine, ExchangeToken<CoroutineCore> coreToken)
+    internal static MoveNextBridgeBuilder<TMoveNextStateMachine> Start(ref TMoveNextStateMachine moveNextStateMachine, ExchangeToken<CoroutineCore> coreToken)
     {
-        stateMachinePtr = Unsafe.AsPointer(ref moveNextStateMachine);
+        stateMachine = moveNextStateMachine;
         MoveNextBridgeBuilder<TMoveNextStateMachine>.coreToken = coreToken;
         return Instance;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    unsafe CoroutineStateMachine IMoveNextBridgeBuilder.Build<TStateMachine>(ref TStateMachine stateMachine) 
+    CoroutineStateMachine IMoveNextBridgeBuilder.Build<TStateMachine>(ref TStateMachine stateMachine) 
     {
-        var moveNextBridge = new MoveNextBridge<TMoveNextStateMachine, TStateMachine>(ref stateMachine, ref Unsafe.AsRef<TMoveNextStateMachine>(stateMachinePtr), coreToken!);
+        var moveNextBridge = new MoveNextBridge<TMoveNextStateMachine, TStateMachine>(ref stateMachine, ref MoveNextBridgeBuilder<TMoveNextStateMachine>.stateMachine, coreToken!);
+        coreToken = null;
         return CoroutineStateMachine<MoveNextBridge<TMoveNextStateMachine, TStateMachine>>.CaptureStateMachine(ref moveNextBridge);
     }
 }

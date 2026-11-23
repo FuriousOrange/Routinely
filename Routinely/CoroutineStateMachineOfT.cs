@@ -5,7 +5,6 @@ namespace Routinely;
 internal readonly struct CoroutineStateMachine<TStateMachine>
     where TStateMachine : IAsyncStateMachine
 {
-    //[ThreadStatic]
     internal static int TypeId;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
