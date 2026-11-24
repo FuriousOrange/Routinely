@@ -7,10 +7,10 @@ public class CoroutineIdTests
     public void GetNextId_Increments_CurrentId()
     {
         // Arrange
-        CoroutineId.CurrentId = 0;
+        IdFactory<object>.CurrentId = 0;
 
         // Act
-        var id = CoroutineId.GetNextId();
+        var id = IdFactory<object>.GetNext();
 
         // Assert
         id.Should().Be(1);
@@ -20,10 +20,10 @@ public class CoroutineIdTests
     public void GetNextId_Wraps_From_Zero_To_One_When_Max()
     {
         // Arrange
-        CoroutineId.CurrentId = uint.MaxValue;
+        IdFactory<object>.CurrentId = uint.MaxValue;
 
         // Act
-        var id = CoroutineId.GetNextId();
+        var id = IdFactory<object>.GetNext();
 
         // Assert
         id.Should().Be(1);

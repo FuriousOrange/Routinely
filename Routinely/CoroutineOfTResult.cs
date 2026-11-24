@@ -186,7 +186,7 @@ public partial struct Coroutine<TResult> : ICoroutine<TResult>, ICoroutineNotify
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Coroutine()
     {
-        Id = CoroutineId.GetNextId();
+        Id = IdFactory<Coroutine>.GetNext();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

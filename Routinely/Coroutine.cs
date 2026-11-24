@@ -181,7 +181,7 @@ public partial struct Coroutine : ICoroutine<Coroutine.CoroutineVoid>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Coroutine()
     {
-        Id = CoroutineId.GetNextId();
+        Id = IdFactory<Coroutine>.GetNext();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

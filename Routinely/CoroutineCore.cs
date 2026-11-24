@@ -20,7 +20,7 @@ public struct CoroutineCore
     internal CoroutineStateMachine StateMachine;
     internal ExchangeToken? Result;
 
-    public readonly bool HasContext => Id != 0;
+    public readonly bool HasContext => Id != IdFactory<CoroutineCore>.Uninitialized;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool HasFlag(byte flag) => (Flags & flag) == flag;

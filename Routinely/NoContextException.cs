@@ -12,12 +12,12 @@ public class NoContextException : Exception
     {
         ref var core = ref coroutine.CoreToken.Item;
 
-        if(core.Id != 0 && StackDispatcher.Id != core.DispatcherId)
+        if(core.Id != IdFactory<CoroutineCore>.Uninitialized && StackDispatcher.Id != core.DispatcherId)
         {
             return $"{LostContextMessage} Coroutine is associated with dispatcher {core.DispatcherId}. Current resuming dispatcher is {StackDispatcher.Id}.";
         }
 
-        if(core.Id == 0)
+        if(core.Id == IdFactory<CoroutineCore>.Uninitialized)
         {
             return $"{LostContextMessage} Coroutine has been recycled.";
         }

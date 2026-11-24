@@ -4,7 +4,7 @@
 internal struct WhenAnyContext<TCoroutine, TResult>(TCoroutine[] coroutines)
     where TCoroutine: struct, ICoroutine<TResult>
 {
-    internal readonly uint Id = CoroutineId.GetNextId();
+    internal readonly uint Id = IdFactory<WhenAnyContext<TCoroutine, TResult>>.GetNext();
 
     internal readonly TCoroutine[] Coroutines = coroutines;
 
@@ -13,6 +13,6 @@ internal struct WhenAnyContext<TCoroutine, TResult>(TCoroutine[] coroutines)
     public readonly bool HasContext
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Id != 0;
+        get => Id != IdFactory<WhenAnyContext<TCoroutine, TResult>>.Uninitialized;
     }
 }

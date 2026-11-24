@@ -7,12 +7,12 @@ internal struct WhenAllContext<TCoroutine, TResult>(TCoroutine[] coroutines, TRe
     internal readonly TCoroutine[] Coroutines = coroutines;
     internal TResult[]? Results = results;
 
-    internal readonly uint Id = CoroutineId.GetNextId();
+    internal readonly uint Id = IdFactory<WhenAllContext<TCoroutine, TResult>>.GetNext();
     internal List<Exception>? Exceptions;
 
     public readonly bool HasContext
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Id != 0;
+        get => Id != IdFactory<WhenAllContext<TCoroutine, TResult>>.Uninitialized;
     }
 }

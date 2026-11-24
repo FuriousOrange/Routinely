@@ -12,13 +12,13 @@ internal static class StackDispatcher
     private static bool initialized;
 
     [ThreadStatic]
-    internal static byte Id = 0;
+    internal static byte Id;
 
     [ThreadStatic]
     internal static int StackCount;
 
     [ThreadStatic]
-    internal static PartitionArray<CoroutineStack> stacks;
+    internal static PartitionArray<CoroutineStack> Stacks;
 
     [ThreadStatic]
     internal static List<CoroutineContext> Contexts;
@@ -43,14 +43,14 @@ internal static class StackDispatcher
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [MemberNotNull(nameof(stacks), nameof(Contexts), nameof(MainContext), nameof(CurrentContext))]
+    [MemberNotNull(nameof(Stacks), nameof(Contexts), nameof(MainContext), nameof(CurrentContext))]
     static internal void ThreadInit()
     {
         lock (threadInitLock)
         {
             if (initialized)
             {
-                if (stacks != null && Contexts != null && MainContext != null && CurrentContext != null)
+                if (Stacks != null && Contexts != null && MainContext != null && CurrentContext != null)
                 {
                     return;
                 }
@@ -61,9 +61,9 @@ internal static class StackDispatcher
             }
 
             Id = ++currentId;
-            stacks ??= new();
+            Stacks ??= new();
             CurrentStack = null!;
-            MainContext ??= new(stacks, StackCount, currentIndex);
+            MainContext ??= new(Stacks, StackCount, currentIndex);
             CurrentContext ??= MainContext;
             Contexts ??= [MainContext];
             initialized = true;
@@ -75,14 +75,14 @@ internal static class StackDispatcher
     {
         var stack = CoroutineStack.Get();
 
-        if (StackCount >= stacks.Length)
+        if (StackCount >= Stacks.Length)
         {
-            stacks.Expand();
+            Stacks.Expand();
         }
 
         stack.DispatcherIndex = StackCount;
         stack.CoroutineContext = CurrentContext!;
-        stacks[StackCount++] = stack;
+        Stacks[StackCount++] = stack;
 
         CurrentContext!.StackCount = StackCount;
 
@@ -109,15 +109,11 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void StackMoveNext(CoroutineStack stack)
     {
-        Debug.Assert(stack != null, "StackMoveNext called with null stackToken");
-
         // Need to capture the current active stack here as the previous stack
         // to ensure that when we recursively call StackMoveNext
         // we don't lose the stack execution context of the current stack.
         var prevStack = CurrentStack;
         CurrentStack = stack;
-
-        Debug.Assert(stack != null, "StackMoveNext called with null stack");
 
         var coreToken = stack.Peek();
         ref var core = ref coreToken.Item;
@@ -185,7 +181,7 @@ internal static class StackDispatcher
 
         for (currentIndex = 0; currentIndex < StackCount; currentIndex++)
         {
-            var stack = stacks[currentIndex];
+            var stack = Stacks[currentIndex];
 
             ProcessStack(stack, ref exceptions);
         }
@@ -203,10 +199,6 @@ internal static class StackDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ReturnStack(CoroutineStack stack)
     {
-        Debug.Assert(stack != null, "ReturnStack called with null stack");
-        Debug.Assert(stack.StackToken != null, "ReturnStack called with null stackToken");
-        Debug.Assert(stack.HeadIndex == 0, "ReturnStack called on non-empty stack");
-
         DetachStack(stack);
 
         stack.StackToken.Return(false);
@@ -222,9 +214,9 @@ internal static class StackDispatcher
 
         var moveIndex = StackCount - 1;
 
-        stacks[moveIndex].DispatcherIndex = stack.DispatcherIndex;
-        stacks[stack.DispatcherIndex] = stacks[moveIndex];
-        stacks[moveIndex] = null!;
+        Stacks[moveIndex].DispatcherIndex = stack.DispatcherIndex;
+        Stacks[stack.DispatcherIndex] = Stacks[moveIndex];
+        Stacks[moveIndex] = null!;
         stack.DispatcherIndex = -1;
         stack.Exception = null;
         stack.CoroutineContext = null!;
@@ -232,18 +224,12 @@ internal static class StackDispatcher
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void DetachForMigrate(CoroutineStack stack)
-    {
-        Debug.Assert(stack != null, "MigrateStack called with null stack");
-
-        DetachStack(stack);
-        CurrentContext!.StackCount = StackCount;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static CoroutineStack DetachActive()
     {
-        Debug.Assert(CurrentStack != null, "DetachActive called with null CurrentStack");
+        if (CurrentStack == null)
+        {
+            throw new InvalidOperationException("No active stack to detach");
+        }
 
         if (CurrentStack.DispatcherIndex != -1)
         {
@@ -274,13 +260,13 @@ internal static class StackDispatcher
 
         if (CurrentContext != null)
         {
-            CurrentContext.Stacks = stacks;
+            CurrentContext.Stacks = Stacks;
             CurrentContext.StackCount = StackCount;
             CurrentContext.CurrentIndex = currentIndex;
         }
 
         CurrentContext = context;
-        stacks = context.Stacks;
+        Stacks = context.Stacks;
         StackCount = context.StackCount;
         currentIndex = context.CurrentIndex;
     }
