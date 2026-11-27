@@ -5,10 +5,16 @@ using System.Collections.Concurrent;
 
 public abstract class CoroutineTestBase
 {
+    [TestInitialize]
+    public void DispatcherInitialize()
+    {
+        Coroutine.ThreadInit();
+    }
+
     [TestCleanup]
     public void DispatcherCleanup()
     {
-        Coroutine.Dispose();
+        Coroutine.ThreadCleanup();
     }
 }
 
@@ -88,6 +94,6 @@ public abstract class CoroutineThreadTestBase : CoroutineTestBase
 
         }
 
-        Coroutine.Dispose();
+        Coroutine.ThreadCleanup();
     }
 }

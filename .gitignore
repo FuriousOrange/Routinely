@@ -401,3 +401,6 @@ FodyWeavers.xsd
 .vscode/
 /Routinely.UnitTests/Coroutine.Suspend.Tests.cs
 /Routinely/Exchange.cs
+
+# BenchmarkDotNet
+/**/.bdn/**/*

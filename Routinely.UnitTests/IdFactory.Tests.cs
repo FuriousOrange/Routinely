@@ -1,7 +1,7 @@
 ﻿namespace Routinely.UnitTests;
 
 [TestClass]
-public class CoroutineIdTests
+public class IdFactoryTests
 {
     [TestMethod]
     public void GetNextId_Increments_CurrentId()

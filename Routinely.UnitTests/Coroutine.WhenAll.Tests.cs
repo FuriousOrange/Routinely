@@ -117,7 +117,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
     public void WhenAll_Awaited_No_Context_Throws()
     {
         // Arrange
-        async Coroutine noContext()
+        static async Coroutine noContext()
         {
             await Coroutine.Yield();
         }
@@ -137,7 +137,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
     public void WhenAll_Of_Result_Awaited_No_Context_Throws()
     {
         // Arrange
-        async Coroutine<int> noContext()
+        static async Coroutine<int> noContext()
         {
             await Coroutine.Yield();
             return 1;
@@ -502,7 +502,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
     public void WhenAll_Await_Duplicate_Coroutine_Throws_Multiple_Await()
     {
         // Arrange
-        async Coroutine sub()
+        static async Coroutine sub()
         {
             await Coroutine.Yield();
         }
@@ -521,7 +521,7 @@ public class CoroutineWhenAllTests : CoroutineTestBase
     public void WhenAll_Await_Duplicate_Coroutine_With_Non_Duplicate_Throws_Multiple_Await()
     {
         // Arrange
-        async Coroutine sub()
+        static async Coroutine sub()
         {
             await Coroutine.Yield();
         }

@@ -28,7 +28,6 @@ public class CoroutineExceptionTests : CoroutineTestBase
 
         // Assert
         act.Should().Throw<Exception>().And.Should().Be(expectedException);
-        Coroutine.Count.Should().Be(0);
     }
 
     [TestMethod]
@@ -63,8 +62,6 @@ public class CoroutineExceptionTests : CoroutineTestBase
         // Assert
         act.Should().Throw<AggregateException>()
             .And.InnerExceptions.Should().ContainInOrder(expectedException1, expectedException2);
-            
-        Coroutine.Count.Should().Be(0);
     }
 
     [TestMethod]

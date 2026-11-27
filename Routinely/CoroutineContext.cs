@@ -10,12 +10,14 @@ public sealed class CoroutineContext
     internal CoroutineContext(
         PartitionArray<CoroutineStack> stacks,
         int stackCount,
-        int currentIndex)
+        int currentIndex,
+        double totalElapsedSeconds)
     {
         Stacks = stacks;
         StackCount = stackCount;
         CurrentIndex = currentIndex;
         DispatcherId = StackDispatcher.Id;
+        TotalElapsedSeconds = totalElapsedSeconds;
     }
 
     public uint Id
@@ -48,6 +50,34 @@ public sealed class CoroutineContext
         get;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal set;
+    }
+
+    public double DeltaSeconds
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal set;
+    }
+
+    public TimeSpan DeltaTimeSpan
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => TimeSpan.FromSeconds(DeltaSeconds);
+    }
+
+    public double TotalElapsedSeconds
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal set;
+    }
+
+    public TimeSpan TotalElapsedTime
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => TimeSpan.FromSeconds(TotalElapsedSeconds);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

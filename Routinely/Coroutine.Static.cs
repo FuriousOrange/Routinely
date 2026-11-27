@@ -19,12 +19,34 @@ public partial struct Coroutine
     /// <summary>
     /// Gets the count of active coroutines from the currently active <see cref="CoroutineContext"/>.
     /// </summary>
-    public static int Count => StackDispatcher.StackCount;
+    public static int Count
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => StackDispatcher.CurrentContext.StackCount;
+    }
 
     public static CoroutineContext MainContext
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => StackDispatcher.MainContext;
+    }
+
+    public static double DeltaSeconds
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => StackDispatcher.DeltaSeconds;
+    }
+
+    public static double TotalElapsedSeconds
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => StackDispatcher.CurrentContext.TotalElapsedSeconds;
+    }
+
+    public static TimeSpan TotalElapsedTime
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => StackDispatcher.CurrentContext.TotalElapsedTime;
     }
 
     static Coroutine()
@@ -239,12 +261,14 @@ public partial struct Coroutine
             {
                 completedCount++;
 
-                if (results != null)
+                if (results == null)
                 {
-                    results[i] = coroutine.Result!;
+                    continue;
                 }
+
+                results[i] = coroutine.Result!;
             }
-            
+
         }
 
         if (completedCount == coroutines.Length)
@@ -741,7 +765,7 @@ public partial struct Coroutine
     /// This will restore the default context and drop all other contexts. 
     /// Use this method to clean up any contexts created with <see cref="CreateContext"/> when they are no longer needed.
     /// </summary>
-    public static void Dispose()
+    public static void ThreadCleanup()
     {
         // Cancel all contexts to ensure a clean state
         foreach (var context in StackDispatcher.Contexts)
@@ -751,17 +775,12 @@ public partial struct Coroutine
             Drain();
         }
 
-        // Clear the contexts list to remove all contexts, including the main context.
-        StackDispatcher.Contexts.Clear();
-
-        // Restore the default context
-        StackDispatcher.SetContext(StackDispatcher.MainContext);
-
-        // Register the main context again
-        StackDispatcher.Contexts.Add(StackDispatcher.MainContext);
+        StackDispatcher.ThreadCleanup();
+        Exchange.ThreadCleanup();
+        OnUnhandledException = null;
     }
 
-    public static void Cancel() => StackDispatcher.CurrentContext?.Cancel();
+    public static void Cancel() => StackDispatcher.CurrentContext.Cancel();
 
     public static void Drain(bool @throw = false)
     {

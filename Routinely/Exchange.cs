@@ -19,9 +19,22 @@ internal class Exchange
 
     internal static ExchangeTrampolines[] Trampolines;
 
+    internal static List<Action> CleanupActions = [];
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Exchange()
     {
         Trampolines = new ExchangeTrampolines[256];
+    }
+
+    internal static void ThreadCleanup()
+    {
+        lock (Lock)
+        {
+            foreach (var action in CleanupActions)
+            {
+                action();
+            }
+        }
     }
 }

@@ -1,10 +1,10 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace Routinely;
 
 internal static class StackDispatcher
 {
+    private static readonly object threadInitLock = new();
 
     private static byte currentId;
 
@@ -27,15 +27,25 @@ internal static class StackDispatcher
     internal static CoroutineContext MainContext;
 
     [ThreadStatic]
-    internal static CoroutineContext? CurrentContext;
+    internal static CoroutineContext CurrentContext;
 
     [ThreadStatic]
     internal static CoroutineStack? CurrentStack;
 
     [ThreadStatic]
-    internal static int currentIndex;
+    internal static int CurrentIndex;
 
-    private static readonly object threadInitLock = new();
+    internal static double DeltaSeconds
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => CurrentContext.DeltaSeconds;
+    }
+
+    internal static TimeSpan DeltaTimeSpan
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => CurrentContext.DeltaTimeSpan;
+    }
 
     static StackDispatcher()
     {
@@ -63,10 +73,31 @@ internal static class StackDispatcher
             Id = ++currentId;
             Stacks ??= new();
             CurrentStack = null!;
-            MainContext ??= new(Stacks, StackCount, currentIndex);
+            MainContext ??= new(Stacks, StackCount, CurrentIndex, 0);
             CurrentContext ??= MainContext;
             Contexts ??= [MainContext];
             initialized = true;
+        }
+    }
+
+    static internal void ThreadCleanup()
+    {
+        lock (threadInitLock)
+        {
+            if (!initialized)
+            {
+                return;
+            }
+
+            StackCount = 0;
+            CurrentStack = null!;
+            CurrentContext = null!;
+            MainContext = null!;
+            Stacks = null!;
+            Contexts = null!;
+            StackCount = 0;
+            CurrentIndex = 0;
+            initialized = false;
         }
     }
 
@@ -84,7 +115,7 @@ internal static class StackDispatcher
         stack.CoroutineContext = CurrentContext!;
         Stacks[StackCount++] = stack;
 
-        CurrentContext!.StackCount = StackCount;
+        CurrentContext.StackCount = StackCount;
 
         return stack;
     }
@@ -179,21 +210,39 @@ internal static class StackDispatcher
     {
         List<Exception>? exceptions = null;
 
-        for (currentIndex = 0; currentIndex < StackCount; currentIndex++)
+        for (CurrentIndex = 0; CurrentIndex < StackCount; CurrentIndex++)
         {
-            var stack = Stacks[currentIndex];
+            var stack = Stacks[CurrentIndex];
 
             ProcessStack(stack, ref exceptions);
         }
+
+        ref var currentContext = ref CurrentContext;
+        currentContext.DeltaSeconds = 0;
+        currentContext.StackCount = StackCount;
 
         if (exceptions != null)
         {
             HandleFaults(exceptions);
         }
 
-        CurrentContext!.StackCount = StackCount;
-
         return StackCount != 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void UpdateDelta(double delta)
+    {
+        if (!Coroutine.Clock.IsPositiveFinite(delta))
+        {
+            CoroutineClockException.ThrowClockUpdateMustBePositiveSeconds();
+        }
+
+        for (var i = 0; i < Contexts.Count; i++)
+        {
+            var context = Contexts[i];
+            context.DeltaSeconds += delta;
+            context.TotalElapsedSeconds += delta;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -233,7 +282,7 @@ internal static class StackDispatcher
 
         if (CurrentStack.DispatcherIndex != -1)
         {
-            currentIndex--;
+            CurrentIndex--;
             DetachStack(CurrentStack);
         }
 
@@ -244,7 +293,7 @@ internal static class StackDispatcher
     {
         CoroutineContext context;
 
-        Contexts.Add(context = new CoroutineContext(new(), 0, 0));
+        Contexts.Add(context = new CoroutineContext(new(), 0, 0, MainContext.TotalElapsedSeconds));
 
         return context;
     }
@@ -262,13 +311,14 @@ internal static class StackDispatcher
         {
             CurrentContext.Stacks = Stacks;
             CurrentContext.StackCount = StackCount;
-            CurrentContext.CurrentIndex = currentIndex;
+            CurrentContext.CurrentIndex = CurrentIndex;
+            CurrentContext.DeltaSeconds = DeltaSeconds;
         }
 
         CurrentContext = context;
         Stacks = context.Stacks;
         StackCount = context.StackCount;
-        currentIndex = context.CurrentIndex;
+        CurrentIndex = context.CurrentIndex;
     }
 
     private static void HandleException(ref List<Exception>? exceptions, Exception ex)
@@ -311,7 +361,7 @@ internal static class StackDispatcher
             var exception = stack.Exception;
 
             ReturnStack(stack);
-            currentIndex--;
+            CurrentIndex--;
 
             if (exception != null)
             {

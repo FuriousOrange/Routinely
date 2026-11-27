@@ -22,6 +22,10 @@ internal sealed class Exchange<T> : Exchange
                 ReturnTrampoline = &Exchange<T>.ReturnTrampoline
             };
 
+            CleanupActions.Add(() =>
+            {
+                Head = null!;
+            });
         }
         
         Head = new ExchangeToken<T>(TypeId, default!);
